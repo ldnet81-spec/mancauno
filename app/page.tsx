@@ -35,31 +35,7 @@ export default async function HomePage() {
         </div>
       ) : null}
 
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
-        <span className="rounded-full bg-black px-4 py-2 text-sm text-white">
-          Tutti
-        </span>
-
-        <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
-          Calcetto
-        </span>
-
-        <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
-          Padel
-        </span>
-
-        <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
-          Tennis
-        </span>
-
-        <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
-          Running
-        </span>
-
-        <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
-          Altro
-        </span>
-      </div>
+      
 
       <SearchEvents events={events ?? []} />
 

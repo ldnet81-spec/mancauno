@@ -20,6 +20,18 @@ type SearchEventsProps = {
   events: EventItem[];
 };
 
+const sportFilters = [
+  "Tutti",
+  "Calcetto",
+  "Padel",
+  "Tennis",
+  "Running",
+  "Basket",
+  "MTB",
+  "Trekking",
+  "Altro evento",
+];
+
 function formatEventDate(date: string) {
   const startsAt = new Date(date);
 
@@ -39,6 +51,7 @@ function formatEventDate(date: string) {
 
 export default function SearchEvents({ events }: SearchEventsProps) {
   const [query, setQuery] = useState("");
+  const [selectedSport, setSelectedSport] = useState("Tutti");
 
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -48,11 +61,10 @@ export default function SearchEvents({ events }: SearchEventsProps) {
         new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
     );
 
-    if (!normalizedQuery) {
-      return sortedEvents;
-    }
-
     return sortedEvents.filter((event) => {
+      const matchesSport =
+        selectedSport === "Tutti" || event.sport === selectedSport;
+
       const searchableText = [
         event.city,
         event.sport,
@@ -63,12 +75,36 @@ export default function SearchEvents({ events }: SearchEventsProps) {
         .join(" ")
         .toLowerCase();
 
-      return searchableText.includes(normalizedQuery);
+      const matchesQuery =
+        !normalizedQuery || searchableText.includes(normalizedQuery);
+
+      return matchesSport && matchesQuery;
     });
-  }, [events, query]);
+  }, [events, query, selectedSport]);
 
   return (
     <>
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-2">
+        {sportFilters.map((sport) => {
+          const isActive = selectedSport === sport;
+
+          return (
+            <button
+              key={sport}
+              type="button"
+              onClick={() => setSelectedSport(sport)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
+                isActive
+                  ? "bg-black text-white"
+                  : "border border-gray-200 bg-white text-gray-700"
+              }`}
+            >
+              {sport}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mb-6">
         <label className="block">
           <span className="text-sm font-medium">Cerca eventi</span>
@@ -81,7 +117,7 @@ export default function SearchEvents({ events }: SearchEventsProps) {
           />
         </label>
 
-        {query ? (
+        {(query || selectedSport !== "Tutti") ? (
           <p className="mt-2 text-sm text-gray-500">
             {filteredEvents.length === 1
               ? "1 evento trovato"
