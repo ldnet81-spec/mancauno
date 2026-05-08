@@ -43,11 +43,16 @@ export default function SearchEvents({ events }: SearchEventsProps) {
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
+    const sortedEvents = [...events].sort(
+      (a, b) =>
+        new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+    );
+
     if (!normalizedQuery) {
-      return events;
+      return sortedEvents;
     }
 
-    return events.filter((event) => {
+    return sortedEvents.filter((event) => {
       const searchableText = [
         event.city,
         event.sport,

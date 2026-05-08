@@ -7,13 +7,12 @@ import SearchEvents from "./SearchEvents";
 export default async function HomePage() {
   const supabase = createPublicClient();
 
-  const { data: events } = await supabase
-    .from("event_with_counts")
+  const { data: events, error } = await supabase
+    .from("public_events")
     .select("*")
-    .eq("status", "active")
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
-    .limit(50);
+    .limit(200);
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 pb-28 pt-8">
@@ -29,6 +28,12 @@ export default async function HomePage() {
           condivise.
         </p>
       </div>
+
+      {error ? (
+        <div className="mb-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700">
+          {error.message}
+        </div>
+      ) : null}
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
         <span className="rounded-full bg-black px-4 py-2 text-sm text-white">
@@ -49,6 +54,10 @@ export default async function HomePage() {
 
         <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
           Running
+        </span>
+
+        <span className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700">
+          Altro
         </span>
       </div>
 
