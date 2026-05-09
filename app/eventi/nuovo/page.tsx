@@ -1,10 +1,9 @@
 "use client";
 
 import { createClient } from "../../../lib/supabase/client";
-import BrandHeader from "../../../components/BrandHeader";
+import AppHeader from "../../../components/AppHeader";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 
 const sports = [
   { label: "Calcetto", emoji: "⚽" },
@@ -20,6 +19,8 @@ const sports = [
   { label: "Altro evento", emoji: "✨" },
 ];
 
+type EntryType = "open" | "approval";
+
 export default function NewEventPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -32,11 +33,43 @@ export default function NewEventPage() {
   const [locationName, setLocationName] = useState("");
   const [city, setCity] = useState("");
   const [totalSpots, setTotalSpots] = useState(10);
-  const [entryType, setEntryType] = useState<"open" | "approval">("approval");
+  const [entryType, setEntryType] = useState<EntryType>("approval");
   const [notes, setNotes] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [restoreMessage, setRestoreMessage] = useState("");
+
+  useEffect(() => {
+    const savedEvent = localStorage.getItem("mancauno_pending_event");
+
+    if (!savedEvent) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(savedEvent);
+
+      setSport(parsed.sport ?? "Calcetto");
+      setSportEmoji(parsed.sportEmoji ?? "⚽");
+      setTitle(parsed.title ?? "");
+      setDate(parsed.date ?? "");
+      setTime(parsed.time ?? "");
+      setLocationName(parsed.locationName ?? "");
+      setCity(parsed.city ?? "");
+      setTotalSpots(parsed.totalSpots ?? 10);
+      setEntryType(parsed.entryType ?? "approval");
+      setNotes(parsed.notes ?? "");
+
+      setRestoreMessage(
+        "Abbiamo recuperato l’evento che stavi creando. Controlla i dati e clicca di nuovo su Crea evento."
+      );
+
+      localStorage.removeItem("mancauno_pending_event");
+    } catch {
+      localStorage.removeItem("mancauno_pending_event");
+    }
+  }, []);
 
   function handleSportChange(value: string) {
     const selected = sports.find((item) => item.label === value);
@@ -49,12 +82,37 @@ export default function NewEventPage() {
     setSportEmoji(selected.emoji);
   }
 
+  function savePendingEventBeforeLogin() {
+    localStorage.setItem(
+      "mancauno_pending_event",
+      JSON.stringify({
+        sport,
+        sportEmoji,
+        title,
+        date,
+        time,
+        locationName,
+        city,
+        totalSpots,
+        entryType,
+        notes,
+      })
+    );
+  }
+
   async function createEvent() {
     setLoading(true);
     setErrorMessage("");
+    setRestoreMessage("");
 
     if (!title || !date || !time || !locationName || !city || !totalSpots) {
       setErrorMessage("Compila tutti i campi obbligatori.");
+      setLoading(false);
+      return;
+    }
+
+    if (totalSpots < 2 || totalSpots > 100) {
+      setErrorMessage("Il numero di partecipanti deve essere tra 2 e 100.");
       setLoading(false);
       return;
     }
@@ -79,23 +137,26 @@ export default function NewEventPage() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      router.push("/auth/quick-signup");
+      savePendingEventBeforeLogin();
+
+      router.push("/auth/quick-signup?next=/eventi/nuovo&restoreEvent=1");
+      setLoading(false);
       return;
     }
 
     const { data, error } = await supabase.rpc("create_event", {
       p_sport: sport,
       p_sport_emoji: sportEmoji,
-      p_title: title,
+      p_title: title.trim(),
       p_starts_at: startsAt.toISOString(),
-      p_location_name: locationName,
-      p_city: city,
+      p_location_name: locationName.trim(),
+      p_city: city.trim(),
       p_total_spots: totalSpots,
       p_entry_type: entryType,
-      p_address: locationName || "",
+      p_address: locationName.trim(),
       p_lat: null,
       p_lng: null,
-      p_notes: notes || "",
+      p_notes: notes.trim() || "",
     });
 
     setLoading(false);
@@ -116,11 +177,11 @@ export default function NewEventPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-6 py-8">
-      <div className="mb-8">
-        <BrandHeader />
+    <main className="mx-auto min-h-screen max-w-md bg-white px-6 py-8 text-black">
+      <AppHeader />
 
-        <h1 className="mt-8 text-3xl font-semibold tracking-tight">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight">
           Crea evento
         </h1>
 
@@ -129,13 +190,20 @@ export default function NewEventPage() {
         </p>
       </div>
 
+      {restoreMessage ? (
+        <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
+          {restoreMessage}
+        </div>
+      ) : null}
+
       <div className="space-y-5">
         <label className="block">
-          <span className="text-sm font-medium">Sport</span>
+          <span className="text-sm font-medium text-black">Sport</span>
+
           <select
             value={sport}
             onChange={(event) => handleSportChange(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           >
             {sports.map((item) => (
               <option key={item.label} value={item.label}>
@@ -146,78 +214,96 @@ export default function NewEventPage() {
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium">Titolo</span>
+          <span className="text-sm font-medium text-black">Titolo</span>
+
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Calcetto venerdì sera"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="text-sm font-medium">Data</span>
+            <span className="text-sm font-medium text-black">Data</span>
+
             <input
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
             />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium">Ora</span>
+            <span className="text-sm font-medium text-black">Ora</span>
+
             <input
               type="time"
               value={time}
               onChange={(event) => setTime(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
             />
           </label>
         </div>
 
         <label className="block">
-          <span className="text-sm font-medium">Luogo</span>
+          <span className="text-sm font-medium text-black">
+            Indirizzo o luogo
+          </span>
+
           <input
             value={locationName}
             onChange={(event) => setLocationName(event.target.value)}
-            placeholder="Centro sportivo Kennedy"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+            placeholder="Via Monte Amaro 10"
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium">Città</span>
+          <span className="text-sm font-medium text-black">Città</span>
+
           <input
             value={city}
             onChange={(event) => setCity(event.target.value)}
-            placeholder="Milano"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+            placeholder="Avezzano"
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium">Posti totali</span>
+          <span className="text-sm font-medium text-black">
+            Numero partecipanti
+          </span>
+
           <input
             type="number"
             min={2}
-            max={50}
+            max={100}
             value={totalSpots}
             onChange={(event) => setTotalSpots(Number(event.target.value))}
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
+
+          <p className="mt-2 text-xs text-gray-600">
+            Puoi creare eventi da 2 fino a 100 partecipanti.
+          </p>
         </label>
 
         <div>
-          <span className="text-sm font-medium">Tipo partecipazione</span>
+          <span className="text-sm font-medium text-black">
+            Tipo partecipazione
+          </span>
 
           <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
             <button
               type="button"
               onClick={() => setEntryType("open")}
-              className={`rounded-lg px-3 py-2 text-sm ${
-                entryType === "open" ? "bg-white shadow-sm" : "text-gray-600"
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                entryType === "open"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-700"
               }`}
             >
               Ingresso libero
@@ -226,8 +312,10 @@ export default function NewEventPage() {
             <button
               type="button"
               onClick={() => setEntryType("approval")}
-              className={`rounded-lg px-3 py-2 text-sm ${
-                entryType === "approval" ? "bg-white shadow-sm" : "text-gray-600"
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                entryType === "approval"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-700"
               }`}
             >
               Su autorizzazione
@@ -236,13 +324,14 @@ export default function NewEventPage() {
         </div>
 
         <label className="block">
-          <span className="text-sm font-medium">Note</span>
+          <span className="text-sm font-medium text-black">Note</span>
+
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Portare maglia chiara e scura. Campo già prenotato."
+            placeholder="Campo prenotato, quota 5€ a persona, portare maglia chiara e scura."
             rows={4}
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
 
@@ -253,9 +342,10 @@ export default function NewEventPage() {
         ) : null}
 
         <button
+          type="button"
           onClick={createEvent}
           disabled={loading}
-          className="w-full rounded-xl bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-black px-4 py-3 font-medium !text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Creazione in corso..." : "Crea evento"}
         </button>

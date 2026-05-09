@@ -60,7 +60,7 @@ export default function UpdateTotalSpotsForm({
         <input
           type="number"
           min={confirmedCount}
-          max={50}
+          max={100}
           value={totalSpots}
           onChange={(event) => setTotalSpots(Number(event.target.value))}
           className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"

@@ -10,6 +10,7 @@ function QuickSignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const event = searchParams.get("event");
+  const nextParam = searchParams.get("next");
 
   const supabase = createClient();
 
@@ -55,7 +56,7 @@ function QuickSignupContent() {
     setLoading(true);
     setErrorMessage("");
 
-    const next = event ? `/e/${event}?join=1` : "/profilo";
+    const next = event ? `/e/${event}?join=1` : nextParam || "/profilo";
 
     try {
       if (mode === "signup") {

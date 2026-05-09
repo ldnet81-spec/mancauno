@@ -36,27 +36,36 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function uploadAvatar() {
-    if (!avatarFile) {
-      return avatarUrl || null;
-    }
+async function uploadAvatar() {
+  if (!avatarFile) {
+    return avatarUrl || null;
+  }
 
-    const fileExt = avatarFile.name.split(".").pop();
-    const filePath = `${profile.id}/avatar.${fileExt}`;
+  if (!avatarFile.type.startsWith("image/")) {
+    throw new Error("Carica un file immagine valido.");
+  }
 
-    const { error } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, avatarFile, {
-        upsert: true,
-      });
+  if (avatarFile.size > 3 * 1024 * 1024) {
+    throw new Error("L'immagine non può superare 3 MB.");
+  }
 
-    if (error) {
-      throw error;
-    }
+  const fileExt = avatarFile.name.split(".").pop() || "jpg";
+  const filePath = `${profile.id}/avatar-${Date.now()}.${fileExt}`;
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(filePath, avatarFile, {
+      upsert: false,
+      cacheControl: "0",
+    });
 
-    return data.publicUrl;
+  if (error) {
+    throw error;
+  }
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+  return `${data.publicUrl}?v=${Date.now()}`;
   }
 
   async function saveProfile() {

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
-import BrandHeader from "../../components/BrandHeader";
+import AppHeader from "../../components/AppHeader";
+
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -44,8 +45,15 @@ export default async function NotificationsPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
+      
+      <Link
+  href="/"
+  className="mb-6 inline-flex rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800"
+>
+  Home
+</Link>
       <div className="mb-8">
-        <BrandHeader />
+        <AppHeader />
 
         <h1 className="mt-8 text-3xl font-semibold tracking-tight">
           Notifiche
