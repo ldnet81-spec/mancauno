@@ -4,6 +4,7 @@ import { createClient } from "../../lib/supabase/server";
 import BrandHeader from "../../components/BrandHeader";
 import ProfileForm from "./ProfileForm";
 import LogoutButton from "./LogoutButton";
+import AppHeader from "../../components/AppHeader";
 
 export default async function ProfiloPage() {
   const supabase = await createClient();
@@ -48,6 +49,7 @@ const participationCount =
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
+      <AppHeader />
       <div className="mb-8">
         <BrandHeader />
 

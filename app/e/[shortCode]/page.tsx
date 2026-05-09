@@ -9,6 +9,7 @@ import BrandHeader from "../../../components/BrandHeader";
 import CancelEventButton from "./CancelEventButton";
 import UpdateTotalSpotsForm from "./UpdateTotalSpotsForm";
 import CancelParticipationButton from "./CancelParticipationButton";
+import Link from "next/link";
 
 type EventPageProps = {
   params: Promise<{
@@ -171,9 +172,16 @@ export default async function EventPage({ params }: EventPageProps) {
 
   return (
     <main className="mx-auto min-h-screen max-w-md bg-white px-6 pb-36 pt-8">
-      <div className="mb-6">
-        <BrandHeader />
-      </div>
+     <div className="mb-6 flex items-center justify-between gap-4">
+  <BrandHeader />
+
+  <Link
+    href="/"
+    className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800"
+  >
+    Home
+  </Link>
+</div>
 
       <AutoJoinEvent shortCode={event.short_code} />
 

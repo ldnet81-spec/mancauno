@@ -2,6 +2,7 @@ import { createClient } from "../../../lib/supabase/server";
 import BrandHeader from "../../../components/BrandHeader";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AppHeader from "../../../components/AppHeader";
 
 type MyEventsPageProps = {
   searchParams: Promise<{
@@ -75,6 +76,7 @@ export default async function MyEventsPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
+      <AppHeader />
       <div className="mb-8">
         <div className="flex items-center justify-between gap-4">
           <BrandHeader />

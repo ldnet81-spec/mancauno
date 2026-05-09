@@ -75,12 +75,12 @@ export default function AppHeader() {
     },
     {
       href: "/eventi/nuovo",
-      label: "Crea evento",
+      label: "Crea",
       show: userState.isLoggedIn,
     },
     {
       href: "/profilo/eventi",
-      label: "I miei eventi",
+      label: "Eventi",
       show: userState.isLoggedIn,
     },
     {
@@ -110,7 +110,7 @@ export default function AppHeader() {
             alt="mancauno.it"
             width={180}
             height={48}
-            className="h-10 w-auto"
+            className="h-11 w-auto"
             priority
           />
         </Link>
@@ -118,14 +118,14 @@ export default function AppHeader() {
         {!userState.isLoggedIn ? (
           <Link
             href="/auth/quick-signup"
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+            className="rounded-full bg-black px-4 py-2 text-sm font-medium !text-white"
           >
             Accedi
           </Link>
         ) : null}
       </div>
 
-      <nav className="mt-5 flex gap-2 overflow-x-auto pb-1">
+      <nav className="mt-5 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
         {navItems
           .filter((item) => item.show)
           .map((item) => {
@@ -135,16 +135,16 @@ export default function AppHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
+                className={`relative flex min-h-10 items-center justify-center rounded-full px-3 py-2 text-center text-sm font-medium ${
                   active
-  ? "!bg-black !text-white"
-  : "border border-gray-200 bg-white text-gray-800"
+                    ? "bg-black !text-white"
+                    : "border border-gray-200 bg-white text-gray-800"
                 }`}
               >
-                {item.label}
+                <span className="truncate">{item.label}</span>
 
                 {item.badge ? (
-                  <span className="ml-2 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white">
+                  <span className="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold !text-white">
                     {item.badge}
                   </span>
                 ) : null}
