@@ -12,6 +12,7 @@ type AdminPageProps = {
     unbanned?: string;
     event_deleted?: string;
     user_deleted?: string;
+    role_updated?: string;
   }>;
 };
 
@@ -130,6 +131,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       ) : null}
 
+      {params.role_updated ? (
+        <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
+          Ruolo utente aggiornato.
+        </div>
+      ) : null}
+
       {params.event_deleted ? (
         <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
           Evento eliminato.
@@ -141,9 +148,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <label className="block">
           <span className="text-sm font-medium text-black">
-            {section === "users"
-              ? "Cerca utente"
-              : "Cerca evento"}
+            {section === "users" ? "Cerca utente" : "Cerca evento"}
           </span>
 
           <div className="mt-2 flex gap-2">
@@ -226,7 +231,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                          {item.role}
+                          {item.role === "admin" ? "Admin" : "User"}
                         </span>
 
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
@@ -248,6 +253,54 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </div>
 
                     <div className="w-full space-y-3 md:w-80">
+                      {item.role === "admin" ? (
+                        item.id !== user.id ? (
+                          <form
+                            method="post"
+                            action={`/api/admin/users/${item.id}/remove-admin`}
+                            className="space-y-2 rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                          >
+                            <input
+                              name="reason"
+                              placeholder="Motivo rimozione admin"
+                              required
+                              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-black"
+                            />
+
+                            <button
+                              type="submit"
+                              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800"
+                            >
+                              Rimuovi admin
+                            </button>
+                          </form>
+                        ) : (
+                          <p className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+                            Sei amministratore. Non puoi rimuovere il tuo ruolo.
+                          </p>
+                        )
+                      ) : (
+                        <form
+                          method="post"
+                          action={`/api/admin/users/${item.id}/make-admin`}
+                          className="space-y-2 rounded-2xl border border-black/10 bg-gray-50 p-3"
+                        >
+                          <input
+                            name="reason"
+                            placeholder="Motivo promozione admin"
+                            required
+                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-black"
+                          />
+
+                          <button
+                            type="submit"
+                            className="w-full rounded-xl bg-black px-4 py-2 text-sm font-medium !text-white"
+                          >
+                            Rendi amministratore
+                          </button>
+                        </form>
+                      )}
+
                       {item.banned_at ? (
                         <form
                           method="post"
