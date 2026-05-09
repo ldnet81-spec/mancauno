@@ -13,12 +13,43 @@ function QuickSignupContent() {
 
   const supabase = createClient();
 
-  const [email, setEmail] = useState("test@mancauno.local");
-  const [password, setPassword] = useState("test123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
+
+  const [accountType, setAccountType] = useState<"privato" | "circolo">(
+    "privato"
+  );
+  const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [clubName, setClubName] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  async function uploadAvatar(userId: string) {
+    if (!avatarFile) {
+      return null;
+    }
+
+    const fileExt = avatarFile.name.split(".").pop();
+    const filePath = `${userId}/avatar.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, avatarFile, {
+        upsert: true,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
 
   async function continueWithEmailPassword() {
     setLoading(true);
@@ -26,31 +57,106 @@ function QuickSignupContent() {
 
     const next = event ? `/e/${event}?join=1` : "/profilo";
 
-    const authResponse =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-        : await supabase.auth.signUp({
-            email,
-            password,
-          });
+    try {
+      if (mode === "signup") {
+        if (!email || !password) {
+          setErrorMessage("Inserisci email e password.");
+          setLoading(false);
+          return;
+        }
 
-    setLoading(false);
+        if (password.length < 8) {
+          setErrorMessage("La password deve avere almeno 8 caratteri.");
+          setLoading(false);
+          return;
+        }
 
-    if (authResponse.error) {
-      setErrorMessage(authResponse.error.message);
-      return;
+        if (!displayName.trim()) {
+          setErrorMessage("Inserisci il tuo nome.");
+          setLoading(false);
+          return;
+        }
+
+        if (accountType === "circolo" && !clubName.trim()) {
+          setErrorMessage("Inserisci il nome del circolo.");
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              display_name: displayName.trim(),
+              account_type: accountType,
+              phone: phone.trim() || null,
+              club_name:
+                accountType === "circolo" ? clubName.trim() : null,
+            },
+          },
+        });
+
+        if (error) {
+          setErrorMessage(error.message);
+          setLoading(false);
+          return;
+        }
+
+        const user = data.user;
+
+        if (!user) {
+          setErrorMessage("Account creato. Controlla la tua email per confermare l'accesso.");
+          setLoading(false);
+          return;
+        }
+
+        let avatarUrl: string | null = null;
+
+        if (data.session) {
+          avatarUrl = await uploadAvatar(user.id);
+
+          await supabase
+            .from("profiles")
+            .update({
+              display_name: displayName.trim(),
+              account_type: accountType,
+              phone: phone.trim() || null,
+              club_name:
+                accountType === "circolo" ? clubName.trim() : null,
+              avatar_url: avatarUrl,
+            })
+            .eq("id", user.id);
+        }
+
+        router.push(next);
+        router.refresh();
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push(next);
+      router.refresh();
+    } catch (error: any) {
+      setErrorMessage(error.message || "Si è verificato un errore.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push(next);
-    router.refresh();
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-      <div className="rounded-2xl border border-gray-200 p-6">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6 text-black">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6">
         <div className="mb-6">
           <BrandHeader />
         </div>
@@ -86,12 +192,76 @@ function QuickSignupContent() {
         </div>
 
         <div className="mt-6 space-y-3">
+          {mode === "signup" ? (
+            <>
+              <label className="block">
+                <span className="text-sm font-medium">Tipo account</span>
+
+                <select
+                  value={accountType}
+                  onChange={(event) =>
+                    setAccountType(event.target.value as "privato" | "circolo")
+                  }
+                  className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+                >
+                  <option value="privato">Utente privato</option>
+                  <option value="circolo">Circolo</option>
+                </select>
+              </label>
+
+              <input
+                type="text"
+                placeholder="Nome"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              />
+
+              {accountType === "circolo" ? (
+                <input
+                  type="text"
+                  placeholder="Nome circolo"
+                  value={clubName}
+                  onChange={(event) => setClubName(event.target.value)}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                />
+              ) : null}
+
+              <input
+                type="tel"
+                placeholder="Telefono opzionale"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              />
+
+              <label className="block rounded-xl border border-dashed border-gray-300 bg-white p-4">
+                <span className="text-sm font-medium">Foto profilo</span>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) =>
+                    setAvatarFile(event.target.files?.[0] ?? null)
+                  }
+                  className="mt-3 block w-full text-sm text-gray-600"
+                />
+
+                {avatarFile ? (
+                  <p className="mt-2 text-xs text-gray-500">
+                    File selezionato: {avatarFile.name}
+                  </p>
+                ) : null}
+              </label>
+            </>
+          ) : null}
+
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
 
           <input
@@ -99,7 +269,7 @@ function QuickSignupContent() {
             placeholder="Password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
 
           {errorMessage ? (

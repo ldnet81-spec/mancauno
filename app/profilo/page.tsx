@@ -18,7 +18,7 @@ export default async function ProfiloPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, city, bio, avatar_url, role, created_at")
+    .select("id, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name")
     .eq("id", user.id)
     .single();
 
@@ -62,11 +62,29 @@ const participationCount =
 
       <section className="mb-6 rounded-3xl border border-gray-200 p-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-2xl font-semibold">
-            {(profile.display_name || user.email || "U")
-              .slice(0, 1)
-              .toUpperCase()}
-          </div>
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-2xl font-semibold">
+  {profile.avatar_url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={profile.avatar_url}
+      alt="Foto profilo"
+      className="h-full w-full object-cover"
+    />
+  ) : (
+    (profile.display_name || user.email || "U")
+      .slice(0, 1)
+      .toUpperCase()
+  )}
+</div>
+{profile.account_type === "circolo" && profile.club_name ? (
+  <p className="mt-1 text-sm font-medium text-black">
+    {profile.club_name}
+  </p>
+) : null}
+
+<p className="mt-1 text-xs text-gray-500">
+  {profile.account_type === "circolo" ? "Circolo" : "Utente privato"}
+</p>
 
           <div>
             <h2 className="text-xl font-semibold">
@@ -124,13 +142,17 @@ const participationCount =
         <h2 className="mb-5 text-xl font-semibold">I tuoi dati</h2>
 
         <ProfileForm
-          profile={{
-            id: profile.id,
-            display_name: profile.display_name,
-            city: profile.city,
-            bio: profile.bio,
-          }}
-        />
+  profile={{
+    id: profile.id,
+    display_name: profile.display_name,
+    city: profile.city,
+    bio: profile.bio,
+    avatar_url: profile.avatar_url,
+    account_type: profile.account_type,
+    phone: profile.phone,
+    club_name: profile.club_name,
+  }}
+/>
       </section>
 
       <section className="rounded-3xl border border-gray-200 p-6">
