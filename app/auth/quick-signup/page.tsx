@@ -4,7 +4,45 @@ import BrandHeader from "../../../components/BrandHeader";
 import { createClient } from "../../../lib/supabase/client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+
+type EventPreview = {
+  title: string;
+  sport_emoji: string | null;
+  starts_at: string;
+  city: string | null;
+  location_name: string | null;
+  remaining_spots: number | null;
+  status: string | null;
+};
+
+function formatEventDate(date: string) {
+  const startsAt = new Date(date);
+
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(startsAt);
+}
+
+function formatAvailability(remainingSpots: number | null, status: string | null) {
+  if (status !== "active") {
+    return "Evento non disponibile";
+  }
+
+  if (!remainingSpots || remainingSpots <= 0) {
+    return "Evento completo: puoi metterti in coda";
+  }
+
+  if (remainingSpots === 1) {
+    return "Ultimo posto disponibile";
+  }
+
+  return `Mancano ${remainingSpots} posti disponibili`;
+}
 
 function QuickSignupContent() {
   const router = useRouter();
@@ -12,7 +50,7 @@ function QuickSignupContent() {
   const event = searchParams.get("event");
   const nextParam = searchParams.get("next");
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +66,54 @@ function QuickSignupContent() {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [eventPreview, setEventPreview] = useState<EventPreview | null>(null);
+  const [eventPreviewLoading, setEventPreviewLoading] = useState(false);
+  const [eventPreviewError, setEventPreviewError] = useState("");
+
+  useEffect(() => {
+    if (!event) {
+      setEventPreview(null);
+      setEventPreviewError("");
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadEventPreview() {
+      setEventPreviewLoading(true);
+      setEventPreviewError("");
+
+      const { data, error } = await supabase
+        .from("event_with_counts")
+        .select(
+          "title, sport_emoji, starts_at, city, location_name, remaining_spots, status"
+        )
+        .eq("short_code", event)
+        .single();
+
+      if (ignore) {
+        return;
+      }
+
+      setEventPreviewLoading(false);
+
+      if (error || !data) {
+        setEventPreview(null);
+        setEventPreviewError(
+          "Non siamo riusciti a caricare il riepilogo dell'evento."
+        );
+        return;
+      }
+
+      setEventPreview(data);
+    }
+
+    loadEventPreview();
+
+    return () => {
+      ignore = true;
+    };
+  }, [event, supabase]);
 
   async function uploadAvatar(userId: string) {
     if (!avatarFile) {
@@ -156,19 +242,77 @@ function QuickSignupContent() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6 text-black">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6 py-8 text-black">
       <div className="rounded-2xl border border-gray-200 bg-white p-6">
         <div className="mb-6">
           <BrandHeader />
         </div>
 
         <h1 className="text-2xl font-semibold tracking-tight">
-          Accedi per unirti
+          {event ? "Accedi per unirti" : "Accedi a mancauno.it"}
         </h1>
 
         <p className="mt-2 text-gray-600">
-          Accedi o crea un account per partecipare agli eventi.
+          {event
+            ? "Accedi o crea un account: poi invieremo automaticamente la tua richiesta."
+            : "Accedi o crea un account per partecipare agli eventi."}
         </p>
+
+        {event ? (
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            {eventPreviewLoading ? (
+              <p className="text-sm text-gray-600">
+                Caricamento evento...
+              </p>
+            ) : eventPreview ? (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Stai per unirti a
+                </p>
+
+                <div className="mt-3 flex items-start gap-3">
+                  <div className="text-3xl">
+                    {eventPreview.sport_emoji || "?"}
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-black">
+                      {eventPreview.title}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-gray-600">
+                      {formatEventDate(eventPreview.starts_at)}
+                    </p>
+
+                    <p className="mt-1 text-sm text-gray-600">
+                      {[eventPreview.location_name, eventPreview.city]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+
+                    <p className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
+                      {formatAvailability(
+                        eventPreview.remaining_spots,
+                        eventPreview.status
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600">
+                {eventPreviewError || "Evento non trovato."}
+              </p>
+            )}
+
+            <Link
+              href={`/e/${event}`}
+              className="mt-4 block text-sm font-medium text-black underline underline-offset-4"
+            >
+              Rivedi la pagina evento
+            </Link>
+          </div>
+        ) : null}
 
         <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
           <button
