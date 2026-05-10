@@ -3,7 +3,7 @@
 import BrandHeader from "../../../components/BrandHeader";
 import { createClient } from "../../../lib/supabase/client";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 type EventPreview = {
@@ -45,7 +45,6 @@ function formatAvailability(remainingSpots: number | null, status: string | null
 }
 
 function QuickSignupContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const event = searchParams.get("event");
   const nextParam = searchParams.get("next");
@@ -216,8 +215,7 @@ function QuickSignupContent() {
             .eq("id", user.id);
         }
 
-        router.push(next);
-        router.refresh();
+        window.location.assign(next);
         return;
       }
 
@@ -232,8 +230,7 @@ function QuickSignupContent() {
         return;
       }
 
-      router.push(next);
-      router.refresh();
+      window.location.assign(next);
     } catch (error: any) {
       setErrorMessage(error.message || "Si è verificato un errore.");
     } finally {

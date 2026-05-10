@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 
 type UserState = {
@@ -18,7 +18,7 @@ function isActive(pathname: string, href: string) {
 
 export default function AppHeader() {
   const pathname = usePathname();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [userState, setUserState] = useState<UserState>({
     isLoggedIn: false,
@@ -27,17 +27,21 @@ export default function AppHeader() {
   });
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadUserState() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
-        setUserState({
-          isLoggedIn: false,
-          isAdmin: false,
-          unreadNotifications: 0,
-        });
+        if (!ignore) {
+          setUserState({
+            isLoggedIn: false,
+            isAdmin: false,
+            unreadNotifications: 0,
+          });
+        }
         return;
       }
 
@@ -53,14 +57,27 @@ export default function AppHeader() {
         .eq("user_id", user.id)
         .is("read_at", null);
 
-      setUserState({
-        isLoggedIn: true,
-        isAdmin: profile?.role === "admin",
-        unreadNotifications: count ?? 0,
-      });
+      if (!ignore) {
+        setUserState({
+          isLoggedIn: true,
+          isAdmin: profile?.role === "admin",
+          unreadNotifications: count ?? 0,
+        });
+      }
     }
 
     loadUserState();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadUserState();
+    });
+
+    return () => {
+      ignore = true;
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const navItems = [
