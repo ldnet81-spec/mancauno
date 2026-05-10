@@ -1,53 +1,3 @@
-"use client";
-
-import Link from "next/link";
-import { useMemo, useState } from "react";
-
-type EventItem = {
-  id: string;
-  short_code: string;
-  sport: string;
-  sport_emoji: string;
-  title: string;
-  starts_at: string;
-  location_name: string;
-  city: string;
-  remaining_spots: number;
-  waitlisted_count?: number;
-  creator_display_name?: string | null;
-  creator_avatar_url?: string | null;
-  creator_account_type?: string | null;
-  creator_club_name?: string | null;
-};
-
-type SearchEventsProps = {
-  events: EventItem[];
-};
-
-const sportFilters = [
-  "Tutti",
-  "Calcetto",
-  "Padel",
-  "Tennis",
-  "Running",
-  "Basket",
-  "MTB",
-  "Trekking",
-  "Altro evento",
-];
-
-function formatEventDate(date: string) {
-  const startsAt = new Date(date);
-
-  const day = new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(startsAt);
-
-  const time = new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(startsAt);
 
   return `${day} · ${time}`;
@@ -59,6 +9,27 @@ function getCreatorName(event: EventItem) {
   }
 
   return event.creator_display_name || "Organizzatore";
+}
+
+function getAvailabilityBadge(remainingSpots: number) {
+  if (remainingSpots <= 0) {
+    return {
+      label: "Completo",
+      className: "bg-gray-100 text-gray-700",
+    };
+  }
+
+  if (remainingSpots === 1) {
+    return {
+      label: "Ultimo posto",
+      className: "bg-green-600 !text-white",
+    };
+  }
+
+  return {
+    label: `Mancano ${remainingSpots} posti`,
+    className: "bg-black !text-white",
+  };
 }
 
 export default function SearchEvents({ events }: SearchEventsProps) {
@@ -159,6 +130,9 @@ export default function SearchEvents({ events }: SearchEventsProps) {
         ) : (
           filteredEvents.map((event) => {
             const creatorName = getCreatorName(event);
+            const availabilityBadge = getAvailabilityBadge(
+              event.remaining_spots
+            );
 
             return (
               <Link
@@ -219,10 +193,10 @@ export default function SearchEvents({ events }: SearchEventsProps) {
                     ) : null}
                   </div>
 
-                  <span className="shrink-0 rounded-full bg-black px-3 py-1 text-sm font-medium !text-white">
-                    {event.remaining_spots <= 0
-                      ? "Completo"
-                      : `-${event.remaining_spots}`}
+                  <span
+                    className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${availabilityBadge.className}`}
+                  >
+                    {availabilityBadge.label}
                   </span>
                 </div>
               </Link>
