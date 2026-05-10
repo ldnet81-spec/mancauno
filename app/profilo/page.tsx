@@ -60,7 +60,7 @@ const participationCount =
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
       <AppHeaderServer />
       <div className="mb-8">
-        <BrandHeader />
+      
 
         <h1 className="mt-8 text-3xl font-semibold tracking-tight">
           Profilo
