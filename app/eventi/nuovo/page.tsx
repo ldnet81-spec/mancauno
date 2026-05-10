@@ -1,7 +1,6 @@
 "use client";
 
 import AppHeader from "../../../components/AppHeader";
-import { createClient } from "../../../lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -34,7 +33,6 @@ function NewEventForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clubId = searchParams.get("club");
-  const supabase = createClient();
 
   const [sport, setSport] = useState("Calcio/calcetto");
   const [sportEmoji, setSportEmoji] = useState("⚽");
@@ -95,33 +93,40 @@ function NewEventForm() {
       setClubLoading(true);
       setErrorMessage("");
 
-      const response = await fetch(`/api/clubs/${clubId}/event-location`);
-      const result = await response.json();
+      try {
+        const response = await fetch(`/api/clubs/${clubId}/event-location`);
+        const result = await response.json();
 
-      if (ignore) {
-        return;
-      }
+        if (ignore) {
+          return;
+        }
 
-      if (!response.ok) {
-        setErrorMessage(result.error || "Club non trovato.");
+        if (!response.ok) {
+          setErrorMessage(result.error || "Club non trovato.");
+          setClubLoading(false);
+          return;
+        }
+
+        setClubContext(result);
+        setLocationName(result.address || result.name);
+        setCity(result.city || "");
+        setTitle(`Evento presso ${result.name}`);
+
+        const firstSport = result.sports?.[0];
+        const matchingSport = sports.find((item) => item.label === firstSport);
+
+        if (matchingSport) {
+          setSport(matchingSport.label);
+          setSportEmoji(matchingSport.emoji);
+        }
+
         setClubLoading(false);
-        return;
+      } catch {
+        if (!ignore) {
+          setErrorMessage("Non riesco a caricare i dati del club. Riprova tra poco.");
+          setClubLoading(false);
+        }
       }
-
-      setClubContext(result);
-      setLocationName(result.address || result.name);
-      setCity(result.city || "");
-      setTitle(`Evento presso ${result.name}`);
-
-      const firstSport = result.sports?.[0];
-      const matchingSport = sports.find((item) => item.label === firstSport);
-
-      if (matchingSport) {
-        setSport(matchingSport.label);
-        setSportEmoji(matchingSport.emoji);
-      }
-
-      setClubLoading(false);
     }
 
     loadClubContext();
@@ -227,18 +232,6 @@ function NewEventForm() {
       return;
     }
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      savePendingEventBeforeLogin();
-      router.push("/auth/quick-signup?next=/eventi/nuovo&restoreEvent=1");
-      setLoading(false);
-      return;
-    }
-
     const response = await fetch("/api/events/create", {
       method: "POST",
       headers: {
@@ -262,6 +255,12 @@ function NewEventForm() {
     setLoading(false);
 
     if (!response.ok) {
+      if (response.status === 401) {
+        savePendingEventBeforeLogin();
+        router.push("/auth/quick-signup?next=/eventi/nuovo&restoreEvent=1");
+        return;
+      }
+
       setErrorMessage(result.error || "Errore durante la creazione evento.");
       return;
     }
@@ -283,7 +282,7 @@ function NewEventForm() {
     totalSpots >= 2 ? String(totalSpots) : "",
   ].filter(Boolean).length;
 
-  const isEventReady = completedRequiredFields === 6 && !clubLoading;
+  const isEventReady = completedRequiredFields === 6;
   const isClubEventFlow = Boolean(clubContext);
   const previewTitle = title.trim() || `${sport} da organizzare`;
   const previewLocation =
@@ -330,6 +329,34 @@ function NewEventForm() {
       ) : null}
 
       <div className="space-y-5">
+        {isClubEventFlow ? (
+          <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Attivita
+              </p>
+              <h2 className="mt-1 text-xl font-semibold">
+                Che tipo di evento vuoi creare?
+              </h2>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium text-black">Sport</span>
+              <select
+                value={sport}
+                onChange={(event) => handleSportChange(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              >
+                {sports.map((item) => (
+                  <option key={item.label} value={item.label}>
+                    {item.emoji} {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
+        ) : null}
+
         {!isClubEventFlow ? (
           <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
             <div>
