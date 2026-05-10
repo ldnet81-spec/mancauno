@@ -5,8 +5,17 @@ import BrandHeader from "../../components/BrandHeader";
 import ProfileForm from "./ProfileForm";
 import LogoutButton from "./LogoutButton";
 import AppHeader from "../../components/AppHeader";
+import GdprRightsForm from "./GdprRightsForm";
 
-export default async function ProfiloPage() {
+type ProfiloPageProps = {
+  searchParams: Promise<{
+    gdpr?: string;
+    gdpr_error?: string;
+  }>;
+};
+
+export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -171,6 +180,31 @@ const participationCount =
 
         <div className="mt-5">
           <LogoutButton />
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold">Privacy e diritti GDPR</h2>
+
+        <p className="mt-2 text-sm text-gray-600">
+          Puoi esercitare i diritti previsti dal GDPR o richiedere la
+          cancellazione dell'account direttamente da qui.
+        </p>
+
+        {params.gdpr ? (
+          <div className="mt-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
+            {params.gdpr}
+          </div>
+        ) : null}
+
+        {params.gdpr_error ? (
+          <div className="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700">
+            {params.gdpr_error}
+          </div>
+        ) : null}
+
+        <div className="mt-5">
+          <GdprRightsForm />
         </div>
       </section>
     </main>

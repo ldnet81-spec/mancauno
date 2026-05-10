@@ -1,5 +1,4 @@
 import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
 import { createPublicClient } from "../lib/supabase/public";
 import SearchEvents from "./SearchEvents";
 
@@ -39,8 +38,6 @@ export default async function HomePage() {
       ) : null}
 
       <SearchEvents events={events ?? []} />
-
-      <AppFooter />
     </main>
   );
 }

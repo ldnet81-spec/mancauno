@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import CookieBanner from "../components/CookieBanner";
+import AppFooter from "../components/AppFooter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,7 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body>{children}</body>
+      <body>
+        {children}
+        <div className="mx-auto max-w-2xl px-6 pb-28 sm:pb-8">
+          <AppFooter />
+        </div>
+        <CookieBanner />
+      </body>
     </html>
   );
 }
