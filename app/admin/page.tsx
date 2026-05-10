@@ -28,6 +28,16 @@ function formatRemainingSpots(remainingSpots: number) {
   return `Mancano ${remainingSpots} posti`;
 }
 
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+}
+
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
   const section = params.section === "events" ? "events" : "users";
@@ -83,6 +93,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const { data: events } = await eventsQuery;
 
+  const totalUsers = users?.length ?? 0;
+  const adminUsers =
+    users?.filter((item: any) => item.role === "admin").length ?? 0;
+  const bannedUsers =
+    users?.filter((item: any) => Boolean(item.banned_at)).length ?? 0;
+  const totalEvents = events?.length ?? 0;
+  const activeEvents =
+    events?.filter((event: any) => event.status === "active").length ?? 0;
+
   return (
     <main className="mx-auto min-h-screen max-w-5xl bg-white px-6 pb-28 pt-8 text-black sm:pb-8">
       <AppHeader />
@@ -94,6 +113,33 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           Gestisci utenti ed eventi della piattaforma.
         </p>
       </div>
+
+      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <p className="text-2xl font-semibold">{totalUsers}</p>
+          <p className="mt-1 text-sm text-gray-600">Utenti</p>
+        </div>
+
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <p className="text-2xl font-semibold">{adminUsers}</p>
+          <p className="mt-1 text-sm text-gray-600">Admin</p>
+        </div>
+
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <p className="text-2xl font-semibold">{bannedUsers}</p>
+          <p className="mt-1 text-sm text-gray-600">Bannati</p>
+        </div>
+
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <p className="text-2xl font-semibold">{totalEvents}</p>
+          <p className="mt-1 text-sm text-gray-600">Eventi</p>
+        </div>
+
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <p className="text-2xl font-semibold">{activeEvents}</p>
+          <p className="mt-1 text-sm text-gray-600">Attivi</p>
+        </div>
+      </section>
 
       <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-gray-100 p-1">
         <Link
@@ -426,13 +472,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                       <p className="mt-1 text-sm text-gray-600">
                         Data:{" "}
-                        {new Intl.DateTimeFormat("it-IT", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }).format(new Date(event.starts_at))}
+                        {formatDate(event.starts_at)}
                       </p>
 
                       <Link

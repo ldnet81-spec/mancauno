@@ -124,6 +124,19 @@ export default function AppHeader() {
               Accedi
             </Link>
           ) : null}
+
+          {userState.isLoggedIn && userState.isAdmin ? (
+            <Link
+              href="/admin"
+              className={`rounded-full px-4 py-2 text-sm font-medium sm:hidden ${
+                isActive(pathname, "/admin")
+                  ? "bg-black !text-white"
+                  : "border border-gray-200 bg-white text-gray-800"
+              }`}
+            >
+              Admin
+            </Link>
+          ) : null}
         </div>
 
         <nav className="mt-5 hidden flex-wrap gap-2 sm:flex">
