@@ -22,6 +22,7 @@ type EventItem = {
 
 type SearchEventsProps = {
   events: EventItem[];
+  initialQuery?: string;
 };
 
 type DateFilter = "all" | "today" | "tomorrow" | "weekend";
@@ -115,8 +116,11 @@ function getAvailabilityBadge(remainingSpots: number) {
   };
 }
 
-export default function SearchEvents({ events }: SearchEventsProps) {
-  const [query, setQuery] = useState("");
+export default function SearchEvents({
+  events,
+  initialQuery = "",
+}: SearchEventsProps) {
+  const [query, setQuery] = useState(initialQuery);
   const [selectedSport, setSelectedSport] = useState("Tutti");
   const [selectedCity, setSelectedCity] = useState("Tutte");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
