@@ -51,6 +51,9 @@ function NewEventForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const [restoreMessage, setRestoreMessage] = useState("");
 
+  const clubEventTitle =
+    clubContext && sport ? `${sport} presso ${clubContext.name}` : "";
+
   useEffect(() => {
     const savedEvent = localStorage.getItem("mancauno_pending_event");
 
@@ -110,7 +113,7 @@ function NewEventForm() {
         setClubContext(result);
         setLocationName(result.address || result.name);
         setCity(result.city || "");
-        setTitle(`Evento presso ${result.name}`);
+        setTitle(`${sport} presso ${result.name}`);
 
         const firstSport = result.sports?.[0];
         const matchingSport = sports.find((item) => item.label === firstSport);
@@ -134,7 +137,13 @@ function NewEventForm() {
     return () => {
       ignore = true;
     };
-  }, [clubId]);
+  }, [clubId, sport]);
+
+  useEffect(() => {
+    if (clubContext) {
+      setTitle(`${sport} presso ${clubContext.name}`);
+    }
+  }, [clubContext, sport]);
 
   function handleSportChange(value: string) {
     const selected = sports.find((item) => item.label === value);
@@ -241,7 +250,7 @@ function NewEventForm() {
         club_id: clubContext?.id,
         sport,
         sport_emoji: sportEmoji,
-        title: title.trim(),
+        title: (clubEventTitle || title).trim(),
         starts_at: startsAt.toISOString(),
         location_name: locationName.trim(),
         city: city.trim(),
@@ -274,7 +283,7 @@ function NewEventForm() {
   }
 
   const completedRequiredFields = [
-    title.trim(),
+    (clubEventTitle || title).trim(),
     date,
     time,
     locationName.trim(),
@@ -284,7 +293,8 @@ function NewEventForm() {
 
   const isEventReady = completedRequiredFields === 6;
   const isClubEventFlow = Boolean(clubContext);
-  const previewTitle = title.trim() || `${sport} da organizzare`;
+  const previewTitle =
+    clubEventTitle || title.trim() || `${sport} da organizzare`;
   const previewLocation =
     [locationName.trim(), city.trim()].filter(Boolean).join(", ") ||
     "Luogo da indicare";

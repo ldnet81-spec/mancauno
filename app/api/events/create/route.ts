@@ -98,7 +98,8 @@ export async function POST(request: Request) {
 
     locationName = club.club_address || club.club_name || club.display_name || locationName;
     city = club.city || city;
-    title = title || `Evento presso ${club.club_name || club.display_name || "club"}`;
+    const clubName = club.club_name || club.display_name || "club";
+    title = `${payload.sport} presso ${clubName}`;
   }
 
   const { data: profile } = await adminSupabase
