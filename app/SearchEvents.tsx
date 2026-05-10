@@ -1,3 +1,53 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+
+type EventItem = {
+  id: string;
+  short_code: string;
+  sport: string;
+  sport_emoji: string;
+  title: string;
+  starts_at: string;
+  location_name: string;
+  city: string;
+  remaining_spots: number;
+  waitlisted_count?: number;
+  creator_display_name?: string | null;
+  creator_avatar_url?: string | null;
+  creator_account_type?: string | null;
+  creator_club_name?: string | null;
+};
+
+type SearchEventsProps = {
+  events: EventItem[];
+};
+
+const sportFilters = [
+  "Tutti",
+  "Calcetto",
+  "Padel",
+  "Tennis",
+  "Running",
+  "Basket",
+  "MTB",
+  "Trekking",
+  "Altro evento",
+];
+
+function formatEventDate(date: string) {
+  const startsAt = new Date(date);
+
+  const day = new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(startsAt);
+
+  const time = new Intl.DateTimeFormat("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(startsAt);
 
   return `${day} · ${time}`;
