@@ -1,4 +1,3 @@
-import Link from "next/link";
 import AppHeader from "../components/AppHeader";
 import AppFooter from "../components/AppFooter";
 import { createPublicClient } from "../lib/supabase/public";
@@ -42,17 +41,6 @@ export default async function HomePage() {
       <SearchEvents events={events ?? []} />
 
       <AppFooter />
-
-      <div className="fixed inset-x-0 bottom-0 border-t border-gray-200 bg-white p-4">
-        <div className="mx-auto max-w-md">
-          <Link
-            href="/eventi/nuovo"
-            className="block w-full rounded-xl bg-black px-4 py-3 text-center font-medium !text-white"
-          >
-            + Crea evento
-          </Link>
-        </div>
-      </div>
     </main>
   );
 }

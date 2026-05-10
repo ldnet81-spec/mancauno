@@ -13,11 +13,7 @@ type UserState = {
 };
 
 function isActive(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return pathname.startsWith(href);
+  return pathname === href;
 }
 
 export default function AppHeader() {
@@ -101,57 +97,94 @@ export default function AppHeader() {
     },
   ];
 
+  const mobileNavItems = navItems.filter(
+    (item) => item.show && item.href !== "/admin"
+  );
+
   return (
-    <header className="mb-8">
-      <div className="flex items-center justify-between gap-4">
-        <Link href="/" className="inline-flex items-center">
-          <Image
-            src="/logo-full.png"
-            alt="mancauno.it"
-            width={180}
-            height={48}
-            className="h-11 w-auto"
-            priority
-          />
-        </Link>
-
-        {!userState.isLoggedIn ? (
-          <Link
-            href="/auth/quick-signup"
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium !text-white"
-          >
-            Accedi
+    <>
+      <header className="mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" className="inline-flex items-center">
+            <Image
+              src="/logo-full.png"
+              alt="mancauno.it"
+              width={180}
+              height={48}
+              className="h-11 w-auto"
+              priority
+            />
           </Link>
-        ) : null}
-      </div>
 
-      <nav className="mt-5 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
-        {navItems
-          .filter((item) => item.show)
-          .map((item) => {
-            const active = isActive(pathname, item.href);
+          {!userState.isLoggedIn ? (
+            <Link
+              href="/auth/quick-signup"
+              className="rounded-full bg-black px-4 py-2 text-sm font-medium !text-white"
+            >
+              Accedi
+            </Link>
+          ) : null}
+        </div>
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`relative flex min-h-10 items-center justify-center rounded-full px-3 py-2 text-center text-sm font-medium ${
-                  active
-                    ? "bg-black !text-white"
-                    : "border border-gray-200 bg-white text-gray-800"
-                }`}
-              >
-                <span className="truncate">{item.label}</span>
+        <nav className="mt-5 hidden flex-wrap gap-2 sm:flex">
+          {navItems
+            .filter((item) => item.show)
+            .map((item) => {
+              const active = isActive(pathname, item.href);
 
-                {item.badge ? (
-                  <span className="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold !text-white">
-                    {item.badge}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-      </nav>
-    </header>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative flex min-h-10 items-center justify-center rounded-full px-3 py-2 text-center text-sm font-medium ${
+                    active
+                      ? "bg-black !text-white"
+                      : "border border-gray-200 bg-white text-gray-800"
+                  }`}
+                >
+                  <span className="truncate">{item.label}</span>
+
+                  {item.badge ? (
+                    <span className="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold !text-white">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+        </nav>
+      </header>
+
+      {userState.isLoggedIn ? (
+        <nav
+          aria-label="Navigazione principale"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden"
+        >
+          <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+            {mobileNavItems.map((item) => {
+              const active = isActive(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative flex min-h-12 flex-col items-center justify-center rounded-xl px-1 text-center text-[11px] font-medium ${
+                    active ? "bg-black !text-white" : "text-gray-600"
+                  }`}
+                >
+                  <span className="truncate">{item.label}</span>
+
+                  {item.badge ? (
+                    <span className="absolute right-2 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold !text-white">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
+    </>
   );
 }

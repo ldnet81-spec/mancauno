@@ -84,7 +84,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const { data: events } = await eventsQuery;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl bg-white px-6 py-8 text-black">
+    <main className="mx-auto min-h-screen max-w-5xl bg-white px-6 pb-28 pt-8 text-black sm:pb-8">
       <AppHeader />
 
       <div className="mb-8">

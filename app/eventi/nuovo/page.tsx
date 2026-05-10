@@ -177,7 +177,7 @@ export default function NewEventPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-md bg-white px-6 py-8 text-black">
+    <main className="mx-auto min-h-screen max-w-md bg-white px-6 pb-28 pt-8 text-black sm:pb-8">
       <AppHeader />
 
       <div className="mb-8">
