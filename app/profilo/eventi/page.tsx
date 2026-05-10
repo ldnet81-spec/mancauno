@@ -7,6 +7,8 @@ type MyEventsPageProps = {
   searchParams: Promise<{
     approved?: string;
     rejected?: string;
+    updated?: string;
+    event?: string;
     error?: string;
   }>;
 };
@@ -117,6 +119,12 @@ export default async function MyEventsPage({
       {params.rejected ? (
         <div className="mb-5 rounded-2xl bg-gray-100 p-4 text-sm text-gray-700">
           Richiesta rifiutata. Il partecipante è stato notificato.
+        </div>
+      ) : null}
+
+      {params.updated ? (
+        <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
+          Evento aggiornato. I partecipanti approvati sono stati notificati.
         </div>
       ) : null}
 
@@ -232,33 +240,50 @@ export default async function MyEventsPage({
               );
 
               return (
-                <Link
+                <div
                   key={event.id}
-                  href={`/e/${event.short_code}`}
-                  className="block rounded-2xl border border-gray-200 p-4"
+                  className="rounded-2xl border border-gray-200 p-4"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-2xl">{event.sport_emoji}</p>
+                  <Link href={`/e/${event.short_code}`} className="block">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-2xl">{event.sport_emoji}</p>
 
-                      <h3 className="mt-2 font-semibold">{event.title}</h3>
+                        <h3 className="mt-2 font-semibold">{event.title}</h3>
 
-                      <p className="mt-1 text-sm text-gray-600">
-                        {event.location_name}, {event.city}
-                      </p>
+                        <p className="mt-1 text-sm text-gray-600">
+                          {event.location_name}, {event.city}
+                        </p>
 
-                      <p className="mt-1 text-xs text-gray-400">
-                        {formatDate(event.starts_at)}
-                      </p>
+                        <p className="mt-1 text-xs text-gray-400">
+                          {formatDate(event.starts_at)}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${availabilityBadge.className}`}
+                      >
+                        {availabilityBadge.label}
+                      </span>
                     </div>
+                  </Link>
 
-                    <span
-                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${availabilityBadge.className}`}
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Link
+                      href={`/eventi/${event.id}/modifica`}
+                      className="rounded-xl border border-gray-200 px-4 py-2 text-center text-sm font-medium text-black"
                     >
-                      {availabilityBadge.label}
-                    </span>
+                      Modifica
+                    </Link>
+
+                    <Link
+                      href={`/e/${event.short_code}`}
+                      className="rounded-xl bg-gray-100 px-4 py-2 text-center text-sm font-medium text-gray-700"
+                    >
+                      Vedi evento
+                    </Link>
                   </div>
-                </Link>
+                </div>
               );
             })
           )}
