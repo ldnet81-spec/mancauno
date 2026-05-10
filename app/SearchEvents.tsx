@@ -19,6 +19,7 @@ type EventItem = {
   creator_avatar_url?: string | null;
   creator_account_type?: string | null;
   creator_club_name?: string | null;
+  creator_id?: string | null;
 };
 
 type SearchEventsProps = {
@@ -406,11 +407,25 @@ export default function SearchEvents({
 
                         <p className="text-xs text-gray-600">
                           {event.creator_account_type === "circolo"
-                            ? "Circolo"
+                            ? "Club"
                             : "Organizzatore"}
                         </p>
                       </div>
                     </div>
+
+                    {event.creator_account_type === "circolo" ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
+                          Club
+                        </span>
+
+                        {event.creator_id ? (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                            Pagina club disponibile
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     {event.waitlisted_count && event.waitlisted_count > 0 ? (
                       <p className="mt-3 text-sm text-orange-700">

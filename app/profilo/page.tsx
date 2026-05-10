@@ -60,14 +60,15 @@ const participationCount =
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
       <AppHeaderServer />
       <div className="mb-8">
-      
+        <BrandHeader />
 
         <h1 className="mt-8 text-3xl font-semibold tracking-tight">
           Profilo
         </h1>
 
         <p className="mt-2 text-gray-600">
-          Gestisci le informazioni visibili quando partecipi agli eventi.
+          Gestisci le informazioni visibili quando partecipi o pubblichi
+          eventi.
         </p>
       </div>
 
@@ -97,13 +98,30 @@ const participationCount =
   {profile.account_type === "circolo" ? "Circolo" : "Utente privato"}
 </p>
 
-          <div>
+          <div className="min-w-0">
+            {profile.account_type === "circolo" ? (
+              <span className="mb-2 inline-flex rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
+                Club
+              </span>
+            ) : null}
+
             <h2 className="text-xl font-semibold">
-              {profile.display_name || "Utente mancauno"}
+              {profile.account_type === "circolo" && profile.club_name
+                ? profile.club_name
+                : profile.display_name || "Utente mancauno"}
             </h2>
             <p className="text-sm text-gray-600">{user.email}</p>
           </div>
         </div>
+
+        {profile.account_type === "circolo" ? (
+          <Link
+            href={`/club/${profile.id}`}
+            className="mt-5 block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-black"
+          >
+            Vedi pagina pubblica del club
+          </Link>
+        ) : null}
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-gray-50 p-4">
@@ -153,9 +171,9 @@ const participationCount =
         <h2 className="mb-5 text-xl font-semibold">I tuoi dati</h2>
 
         <div className="mb-5 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
-          Nome, foto, citta e bio possono aiutare gli altri utenti a capire chi
-          organizza o partecipa. Il telefono resta un dato di contatto e non
-          viene mostrato pubblicamente nella scheda evento.
+          Per i circoli, nome, foto, citta, telefono e descrizione diventano la
+          base della pagina pubblica del club. Inserisci contatti chiari:
+          aiutano gli utenti a fidarsi e a chiedere informazioni.
         </div>
 
         <ProfileForm

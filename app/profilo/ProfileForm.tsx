@@ -154,15 +154,31 @@ async function uploadAvatar() {
       </label>
 
       {accountType === "circolo" ? (
-        <label className="block">
-          <span className="text-sm font-medium">Nome circolo</span>
-          <input
-            value={clubName}
-            onChange={(event) => setClubName(event.target.value)}
-            placeholder="Nome del circolo"
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
-          />
-        </label>
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">Pagina club inclusa</p>
+              <p className="mt-1 text-sm text-gray-600">
+                Piano Free: fino a 8 eventi al mese. Il piano Pro con eventi
+                illimitati sara disponibile piu avanti.
+              </p>
+            </div>
+
+            <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
+              Club
+            </span>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="text-sm font-medium">Nome circolo</span>
+            <input
+              value={clubName}
+              onChange={(event) => setClubName(event.target.value)}
+              placeholder="Nome del circolo"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+            />
+          </label>
+        </div>
       ) : null}
 
       <label className="block">
@@ -181,7 +197,11 @@ async function uploadAvatar() {
           type="tel"
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
-          placeholder="Telefono opzionale"
+          placeholder={
+            accountType === "circolo"
+              ? "Telefono o WhatsApp del circolo"
+              : "Telefono opzionale"
+          }
           className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
         />
       </label>
@@ -201,7 +221,11 @@ async function uploadAvatar() {
         <textarea
           value={bio}
           onChange={(event) => setBio(event.target.value)}
-          placeholder="Racconta qualcosa di te."
+          placeholder={
+            accountType === "circolo"
+              ? "Descrivi il circolo, gli sport disponibili, i servizi e perche partecipare ai vostri eventi."
+              : "Racconta qualcosa di te."
+          }
           rows={4}
           className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
         />

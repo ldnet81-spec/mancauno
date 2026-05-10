@@ -181,24 +181,31 @@ export default function NewEventPage() {
       return;
     }
 
-    const { data, error } = await supabase.rpc("create_event", {
-      p_sport: sport,
-      p_sport_emoji: sportEmoji,
-      p_title: title.trim(),
-      p_starts_at: startsAt.toISOString(),
-      p_location_name: locationName.trim(),
-      p_city: city.trim(),
-      p_total_spots: totalSpots,
-      p_entry_type: entryType,
-      p_address: locationName.trim(),
-      p_lat: null,
-      p_lng: null,
-      p_notes: notes.trim() || "",
+    const response = await fetch("/api/events/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sport,
+        sport_emoji: sportEmoji,
+        title: title.trim(),
+        starts_at: startsAt.toISOString(),
+        location_name: locationName.trim(),
+        city: city.trim(),
+        total_spots: totalSpots,
+        entry_type: entryType,
+        notes: notes.trim() || "",
+      }),
     });
 
     setLoading(false);
 
-    if (error) {
+    const result = await response.json();
+    const data = result;
+    const error = { message: result.error, details: "" };
+
+    if (!response.ok) {
       setErrorMessage(
         `${error.message}${error.details ? ` — ${error.details}` : ""}`
       );

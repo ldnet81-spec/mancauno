@@ -50,6 +50,19 @@ function getCreatorName(profile: any, event: any) {
   );
 }
 
+function getWhatsAppHref(phone: string | null | undefined) {
+  if (!phone) {
+    return null;
+  }
+
+  const normalized = phone.replace(/[^\d+]/g, "");
+  const whatsappNumber = normalized.startsWith("+")
+    ? normalized.replace("+", "")
+    : normalized;
+
+  return whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
+}
+
 export async function generateMetadata({
   params,
 }: EventPageProps): Promise<Metadata> {
@@ -146,7 +159,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const { data: creatorProfile } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, city, bio, avatar_url, account_type, club_name, created_at"
+      "id, display_name, city, bio, avatar_url, account_type, club_name, phone, created_at"
     )
     .eq("id", event.creator_id)
     .single();
@@ -181,6 +194,8 @@ export default async function EventPage({ params }: EventPageProps) {
     event.creator_account_type === "circolo"
       ? "Circolo"
       : "Organizzatore";
+  const creatorWhatsAppHref =
+    creatorType === "Circolo" ? getWhatsAppHref(creatorProfile?.phone) : null;
 
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
@@ -348,7 +363,15 @@ export default async function EventPage({ params }: EventPageProps) {
 
           <div className="min-w-0">
             <p className="font-semibold text-black">{creatorName}</p>
-            <p className="mt-1 text-sm text-gray-600">{creatorType}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-sm text-gray-600">{creatorType}</p>
+
+              {creatorType === "Circolo" ? (
+                <span className="rounded-full bg-black px-2 py-0.5 text-xs font-semibold !text-white">
+                  Club
+                </span>
+              ) : null}
+            </div>
 
             {creatorProfile?.city ? (
               <p className="mt-1 text-sm text-gray-600">
@@ -378,11 +401,33 @@ export default async function EventPage({ params }: EventPageProps) {
           </p>
         ) : null}
 
-        <p className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
-          I contatti personali non sono pubblici nella pagina evento. Usa la
-          richiesta di partecipazione per far sapere all'organizzatore che vuoi
-          unirti.
-        </p>
+        {creatorType === "Circolo" ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <Link
+              href={`/club/${event.creator_id}`}
+              className="rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-black"
+            >
+              Vedi pagina club
+            </Link>
+
+            {creatorWhatsAppHref ? (
+              <a
+                href={creatorWhatsAppHref}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl bg-black px-4 py-3 text-center text-sm font-semibold !text-white"
+              >
+                WhatsApp club
+              </a>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+            I contatti personali non sono pubblici nella pagina evento. Usa la
+            richiesta di partecipazione per far sapere all'organizzatore che
+            vuoi unirti.
+          </p>
+        )}
       </section>
 
       {isCreator && event.status === "active" ? (
