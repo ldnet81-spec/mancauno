@@ -76,7 +76,7 @@ export default async function MyEventsPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
-      <AppHeader />
+      
       <div className="mb-8">
         <div className="flex items-center justify-between gap-4">
           <BrandHeader />

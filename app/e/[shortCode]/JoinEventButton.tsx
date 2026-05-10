@@ -7,12 +7,14 @@ import { useState } from "react";
 type JoinEventButtonProps = {
   shortCode: string;
   isFull: boolean;
+  isUnavailable: boolean;
   initialStatus?: string | null;
 };
 
 export default function JoinEventButton({
   shortCode,
   isFull,
+  isUnavailable,
   initialStatus,
 }: JoinEventButtonProps) {
   const router = useRouter();
@@ -23,6 +25,10 @@ export default function JoinEventButton({
   const [errorMessage, setErrorMessage] = useState("");
 
   async function joinEvent() {
+    if (isUnavailable) {
+      return;
+    }
+
     setLoading(true);
     setErrorMessage("");
 
@@ -48,6 +54,23 @@ export default function JoinEventButton({
 
     setStatus(data.status);
     router.refresh();
+  }
+
+  if (isUnavailable) {
+    return (
+      <div className="space-y-2">
+        <button
+          disabled
+          className="w-full rounded-xl bg-gray-200 px-4 py-3 font-medium text-gray-500"
+        >
+          Evento non disponibile
+        </button>
+
+        <p className="text-center text-xs text-gray-500">
+          Non è possibile unirsi o mettersi in coda.
+        </p>
+      </div>
+    );
   }
 
   if (status === "creator") {

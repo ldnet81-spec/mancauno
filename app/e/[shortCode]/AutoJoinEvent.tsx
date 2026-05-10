@@ -6,9 +6,13 @@ import { useEffect, useState } from "react";
 
 type AutoJoinEventProps = {
   shortCode: string;
+  isUnavailable: boolean;
 };
 
-export default function AutoJoinEvent({ shortCode }: AutoJoinEventProps) {
+export default function AutoJoinEvent({
+  shortCode,
+  isUnavailable,
+}: AutoJoinEventProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -20,6 +24,12 @@ export default function AutoJoinEvent({ shortCode }: AutoJoinEventProps) {
       const shouldJoin = searchParams.get("join") === "1";
 
       if (!shouldJoin) {
+        return;
+      }
+
+      if (isUnavailable) {
+        setMessage("Questo evento non è più disponibile.");
+        router.replace(`/e/${shortCode}`);
         return;
       }
 
@@ -51,7 +61,7 @@ export default function AutoJoinEvent({ shortCode }: AutoJoinEventProps) {
     }
 
     autoJoin();
-  }, [searchParams, shortCode, supabase, router]);
+  }, [isUnavailable, searchParams, shortCode, supabase, router]);
 
   if (!message) {
     return null;

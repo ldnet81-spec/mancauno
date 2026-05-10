@@ -183,7 +183,10 @@ export default async function EventPage({ params }: EventPageProps) {
   </Link>
 </div>
 
-      <AutoJoinEvent shortCode={event.short_code} />
+      <AutoJoinEvent
+        shortCode={event.short_code}
+        isUnavailable={isUnavailable}
+      />
 
       <section className="rounded-3xl border border-gray-200 p-6">
         <div className="text-6xl">{event.sport_emoji}</div>
@@ -322,7 +325,8 @@ export default async function EventPage({ params }: EventPageProps) {
           ) : (
             <JoinEventButton
               shortCode={event.short_code}
-              isFull={isFull || isUnavailable}
+              isFull={isFull}
+              isUnavailable={isUnavailable}
               initialStatus={currentParticipationStatus}
             />
           )}
