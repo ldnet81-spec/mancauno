@@ -1,12 +1,12 @@
 "use client";
 
-import { createClient } from "../../../lib/supabase/client";
 import AppHeader from "../../../components/AppHeader";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createClient } from "../../../lib/supabase/client";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 const sports = [
-  { label: "Calcetto", emoji: "⚽" },
+  { label: "Calcio/calcetto", emoji: "⚽" },
   { label: "Padel", emoji: "🎾" },
   { label: "Tennis", emoji: "🎾" },
   { label: "Beach volley", emoji: "🏐" },
@@ -15,17 +15,28 @@ const sports = [
   { label: "MTB", emoji: "🚴" },
   { label: "Trekking", emoji: "🥾" },
   { label: "Nuoto", emoji: "🏊" },
-  { label: "Allenamento", emoji: "⛹️" },
+  { label: "Allenamento", emoji: "🏋️" },
+  { label: "Lezione privata", emoji: "🎯" },
   { label: "Altro evento", emoji: "✨" },
 ];
 
 type EntryType = "open" | "approval";
 
-export default function NewEventPage() {
+type ClubContext = {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  sports: string[];
+};
+
+function NewEventForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clubId = searchParams.get("club");
   const supabase = createClient();
 
-  const [sport, setSport] = useState("Calcetto");
+  const [sport, setSport] = useState("Calcio/calcetto");
   const [sportEmoji, setSportEmoji] = useState("⚽");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -35,6 +46,8 @@ export default function NewEventPage() {
   const [totalSpots, setTotalSpots] = useState(10);
   const [entryType, setEntryType] = useState<EntryType>("approval");
   const [notes, setNotes] = useState("");
+  const [clubContext, setClubContext] = useState<ClubContext | null>(null);
+  const [clubLoading, setClubLoading] = useState(Boolean(clubId));
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -43,14 +56,14 @@ export default function NewEventPage() {
   useEffect(() => {
     const savedEvent = localStorage.getItem("mancauno_pending_event");
 
-    if (!savedEvent) {
+    if (!savedEvent || clubId) {
       return;
     }
 
     try {
       const parsed = JSON.parse(savedEvent);
 
-      setSport(parsed.sport ?? "Calcetto");
+      setSport(parsed.sport ?? "Calcio/calcetto");
       setSportEmoji(parsed.sportEmoji ?? "⚽");
       setTitle(parsed.title ?? "");
       setDate(parsed.date ?? "");
@@ -60,16 +73,63 @@ export default function NewEventPage() {
       setTotalSpots(parsed.totalSpots ?? 10);
       setEntryType(parsed.entryType ?? "approval");
       setNotes(parsed.notes ?? "");
-
       setRestoreMessage(
-        "Abbiamo recuperato l’evento che stavi creando. Controlla i dati e clicca di nuovo su Crea evento."
+        "Abbiamo recuperato l'evento che stavi creando. Controlla i dati e clicca di nuovo su Crea evento."
       );
 
       localStorage.removeItem("mancauno_pending_event");
     } catch {
       localStorage.removeItem("mancauno_pending_event");
     }
-  }, []);
+  }, [clubId]);
+
+  useEffect(() => {
+    if (!clubId) {
+      setClubLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadClubContext() {
+      setClubLoading(true);
+      setErrorMessage("");
+
+      const response = await fetch(`/api/clubs/${clubId}/event-location`);
+      const result = await response.json();
+
+      if (ignore) {
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(result.error || "Club non trovato.");
+        setClubLoading(false);
+        return;
+      }
+
+      setClubContext(result);
+      setLocationName(result.address || result.name);
+      setCity(result.city || "");
+      setTitle(`Evento presso ${result.name}`);
+
+      const firstSport = result.sports?.[0];
+      const matchingSport = sports.find((item) => item.label === firstSport);
+
+      if (matchingSport) {
+        setSport(matchingSport.label);
+        setSportEmoji(matchingSport.emoji);
+      }
+
+      setClubLoading(false);
+    }
+
+    loadClubContext();
+
+    return () => {
+      ignore = true;
+    };
+  }, [clubId]);
 
   function handleSportChange(value: string) {
     const selected = sports.find((item) => item.label === value);
@@ -113,8 +173,7 @@ export default function NewEventPage() {
 
   function updateTotalSpots(nextValue: number) {
     const safeValue = Number.isFinite(nextValue) ? nextValue : 2;
-    const clampedValue = Math.min(100, Math.max(2, safeValue));
-    setTotalSpots(clampedValue);
+    setTotalSpots(Math.min(100, Math.max(2, safeValue)));
   }
 
   function getPreviewDate() {
@@ -163,7 +222,7 @@ export default function NewEventPage() {
     }
 
     if (startsAt <= new Date()) {
-      setErrorMessage("La data dell’evento non può essere nel passato.");
+      setErrorMessage("La data dell'evento non puo essere nel passato.");
       setLoading(false);
       return;
     }
@@ -175,7 +234,6 @@ export default function NewEventPage() {
 
     if (userError || !user) {
       savePendingEventBeforeLogin();
-
       router.push("/auth/quick-signup?next=/eventi/nuovo&restoreEvent=1");
       setLoading(false);
       return;
@@ -187,6 +245,7 @@ export default function NewEventPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        club_id: clubContext?.id,
         sport,
         sport_emoji: sportEmoji,
         title: title.trim(),
@@ -199,25 +258,20 @@ export default function NewEventPage() {
       }),
     });
 
+    const result = await response.json();
     setLoading(false);
 
-    const result = await response.json();
-    const data = result;
-    const error = { message: result.error, details: "" };
-
     if (!response.ok) {
-      setErrorMessage(
-        `${error.message}${error.details ? ` — ${error.details}` : ""}`
-      );
+      setErrorMessage(result.error || "Errore durante la creazione evento.");
       return;
     }
 
-    if (!data?.short_code) {
+    if (!result.short_code) {
       setErrorMessage("Evento creato, ma short code mancante.");
       return;
     }
 
-    router.push(`/e/${data.short_code}`);
+    router.push(`/e/${result.short_code}`);
   }
 
   const completedRequiredFields = [
@@ -229,7 +283,8 @@ export default function NewEventPage() {
     totalSpots >= 2 ? String(totalSpots) : "",
   ].filter(Boolean).length;
 
-  const isEventReady = completedRequiredFields === 6;
+  const isEventReady = completedRequiredFields === 6 && !clubLoading;
+  const isClubEventFlow = Boolean(clubContext);
   const previewTitle = title.trim() || `${sport} da organizzare`;
   const previewLocation =
     [locationName.trim(), city.trim()].filter(Boolean).join(", ") ||
@@ -241,11 +296,13 @@ export default function NewEventPage() {
 
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Crea evento
+          {isClubEventFlow ? "Crea evento presso il club" : "Crea evento"}
         </h1>
 
         <p className="mt-2 text-gray-600">
-          Crea un link da condividere quando ti manca qualcuno.
+          {isClubEventFlow
+            ? "Indirizzo e citta sono gia impostati: devi solo scegliere data, ora e regole dell'evento."
+            : "Crea un link da condividere quando ti manca qualcuno."}
         </p>
       </div>
 
@@ -255,71 +312,69 @@ export default function NewEventPage() {
         </div>
       ) : null}
 
-      <div className="space-y-5">
-        <div className="rounded-2xl bg-gray-50 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium text-black">
-              Dati essenziali
-            </p>
-
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
-              {completedRequiredFields}/6 completati
-            </span>
-          </div>
-
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-            <div
-              className="h-full rounded-full bg-black transition-all"
-              style={{ width: `${(completedRequiredFields / 6) * 100}%` }}
-            />
-          </div>
+      {clubLoading ? (
+        <div className="mb-5 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+          Caricamento dati del club...
         </div>
+      ) : null}
+
+      {clubContext ? (
+        <div className="mb-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm font-semibold text-black">
+            Evento presso {clubContext.name}
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            {previewLocation}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="space-y-5">
+        {!isClubEventFlow ? (
+          <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Cosa
+              </p>
+              <h2 className="mt-1 text-xl font-semibold">
+                Che evento vuoi creare?
+              </h2>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium text-black">Sport</span>
+              <select
+                value={sport}
+                onChange={(event) => handleSportChange(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              >
+                {sports.map((item) => (
+                  <option key={item.label} value={item.label}>
+                    {item.emoji} {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-black">Titolo</span>
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Calcetto venerdi sera"
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              />
+            </label>
+          </section>
+        ) : null}
 
         <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Cosa
+              Quando
             </p>
             <h2 className="mt-1 text-xl font-semibold">
-              Che evento vuoi creare?
-            </h2>
-          </div>
-
-        <label className="block">
-          <span className="text-sm font-medium text-black">Sport</span>
-
-          <select
-            value={sport}
-            onChange={(event) => handleSportChange(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-          >
-            {sports.map((item) => (
-              <option key={item.label} value={item.label}>
-                {item.emoji} {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium text-black">Titolo</span>
-
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Calcetto venerdì sera"
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-          />
-        </label>
-        </section>
-
-        <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Quando e dove
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">
-              Aiuta le persone a capire subito se possono esserci.
+              Scegli data e ora dell'evento.
             </h2>
           </div>
 
@@ -331,7 +386,6 @@ export default function NewEventPage() {
             >
               Oggi
             </button>
-
             <button
               type="button"
               onClick={() => setQuickDate(1)}
@@ -339,7 +393,6 @@ export default function NewEventPage() {
             >
               Domani
             </button>
-
             <button
               type="button"
               onClick={() => setTime(time || "20:00")}
@@ -349,175 +402,157 @@ export default function NewEventPage() {
             </button>
           </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-sm font-medium text-black">Data</span>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-sm font-medium text-black">Data</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              />
+            </label>
 
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-            />
-          </label>
+            <label className="block">
+              <span className="text-sm font-medium text-black">Ora</span>
+              <input
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+              />
+            </label>
+          </div>
 
-          <label className="block">
-            <span className="text-sm font-medium text-black">Ora</span>
+          {!isClubEventFlow ? (
+            <>
+              <label className="block">
+                <span className="text-sm font-medium text-black">
+                  Indirizzo o luogo
+                </span>
+                <input
+                  value={locationName}
+                  onChange={(event) => setLocationName(event.target.value)}
+                  placeholder="Via Monte Amaro 10"
+                  className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                />
+              </label>
 
-            <input
-              type="time"
-              value={time}
-              onChange={(event) => setTime(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-            />
-          </label>
-        </div>
-
-        <label className="block">
-          <span className="text-sm font-medium text-black">
-            Indirizzo o luogo
-          </span>
-
-          <input
-            value={locationName}
-            onChange={(event) => setLocationName(event.target.value)}
-            placeholder="Via Monte Amaro 10"
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium text-black">Città</span>
-
-          <input
-            value={city}
-            onChange={(event) => setCity(event.target.value)}
-            placeholder="Avezzano"
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-          />
-        </label>
+              <label className="block">
+                <span className="text-sm font-medium text-black">Citta</span>
+                <input
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                  placeholder="Avezzano"
+                  className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                />
+              </label>
+            </>
+          ) : null}
         </section>
 
         <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Posti e regole
+              Regole
             </p>
             <h2 className="mt-1 text-xl font-semibold">
-              Decidi quanti posti ci sono e come gestire le richieste.
+              Scegli come gestire la partecipazione.
             </h2>
           </div>
 
+          {!isClubEventFlow ? (
+            <div>
+              <span className="text-sm font-medium text-black">
+                Numero partecipanti
+              </span>
+              <div className="mt-2 grid grid-cols-[48px_1fr_48px] gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateTotalSpots(totalSpots - 1)}
+                  className="rounded-xl border border-gray-300 text-xl font-semibold"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={2}
+                  max={100}
+                  value={totalSpots}
+                  onChange={(event) =>
+                    updateTotalSpots(Number(event.target.value))
+                  }
+                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-black outline-none focus:border-black"
+                />
+                <button
+                  type="button"
+                  onClick={() => updateTotalSpots(totalSpots + 1)}
+                  className="rounded-xl border border-gray-300 text-xl font-semibold"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div>
             <span className="text-sm font-medium text-black">
-              Numero partecipanti
+              Tipo partecipazione
             </span>
-
-            <div className="mt-2 grid grid-cols-[48px_1fr_48px] gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
               <button
                 type="button"
-                onClick={() => updateTotalSpots(totalSpots - 1)}
-                className="rounded-xl border border-gray-300 text-xl font-semibold"
+                onClick={() => setEntryType("open")}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  entryType === "open"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-700"
+                }`}
               >
-                -
+                Ingresso libero
               </button>
-
-              <input
-                type="number"
-                min={2}
-                max={100}
-                value={totalSpots}
-                onChange={(event) =>
-                  updateTotalSpots(Number(event.target.value))
-                }
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-black outline-none focus:border-black"
-              />
-
               <button
                 type="button"
-                onClick={() => updateTotalSpots(totalSpots + 1)}
-                className="rounded-xl border border-gray-300 text-xl font-semibold"
+                onClick={() => setEntryType("approval")}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  entryType === "approval"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-700"
+                }`}
               >
-                +
+                Su autorizzazione
               </button>
             </div>
-
-            <p className="mt-2 text-xs text-gray-600">
-              Puoi creare eventi da 2 fino a 100 partecipanti.
-            </p>
           </div>
 
-        <div>
-          <span className="text-sm font-medium text-black">
-            Tipo partecipazione
-          </span>
-
-          <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
-            <button
-              type="button"
-              onClick={() => setEntryType("open")}
-              className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                entryType === "open"
-                  ? "bg-white text-black shadow-sm"
-                  : "text-gray-700"
-              }`}
-            >
-              Ingresso libero
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setEntryType("approval")}
-              className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                entryType === "approval"
-                  ? "bg-white text-black shadow-sm"
-                  : "text-gray-700"
-              }`}
-            >
-              Su autorizzazione
-            </button>
-          </div>
-        </div>
-
-        <label className="block">
-          <span className="text-sm font-medium text-black">Note</span>
-
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="Campo prenotato, quota 5€ a persona, portare maglia chiara e scura."
-            rows={4}
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-          />
-        </label>
+          <label className="block">
+            <span className="text-sm font-medium text-black">Note</span>
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Quota, campo, informazioni utili o regole per partecipare."
+              rows={4}
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+            />
+          </label>
         </section>
 
         <section className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
           <div className="flex items-start gap-3">
             <div className="text-3xl">{sportEmoji}</div>
-
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Anteprima
               </p>
-
               <h2 className="mt-1 text-lg font-semibold text-black">
                 {previewTitle}
               </h2>
-
-              <p className="mt-2 text-sm text-gray-700">
-                {getPreviewDate()}
-              </p>
-
-              <p className="mt-1 text-sm text-gray-700">
-                {previewLocation}
-              </p>
-
+              <p className="mt-2 text-sm text-gray-700">{getPreviewDate()}</p>
+              <p className="mt-1 text-sm text-gray-700">{previewLocation}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
                   {totalSpots} posti
                 </span>
-
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
                   {entryType === "open"
                     ? "Ingresso libero"
@@ -526,12 +561,6 @@ export default function NewEventPage() {
               </div>
             </div>
           </div>
-
-          {!isEventReady ? (
-            <p className="mt-4 text-sm text-gray-600">
-              Completa i dati essenziali per pubblicare l'evento.
-            </p>
-          ) : null}
         </section>
 
         {errorMessage ? (
@@ -550,5 +579,22 @@ export default function NewEventPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+export default function NewEventPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto min-h-screen max-w-md bg-white px-6 py-8 text-black">
+          <AppHeader />
+          <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+            Caricamento creazione evento...
+          </div>
+        </main>
+      }
+    >
+      <NewEventForm />
+    </Suspense>
   );
 }

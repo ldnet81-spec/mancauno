@@ -5,6 +5,7 @@ import { createAdminClient } from "../../../../lib/supabase/admin";
 const FREE_CLUB_MONTHLY_EVENT_LIMIT = 8;
 
 type CreateEventPayload = {
+  club_id?: string;
   sport?: string;
   sport_emoji?: string;
   title?: string;
@@ -79,6 +80,27 @@ export async function POST(request: Request) {
     );
   }
 
+  let locationName = payload.location_name.trim();
+  let city = payload.city.trim();
+  let title = payload.title.trim();
+
+  if (payload.club_id) {
+    const { data: club } = await adminSupabase
+      .from("profiles")
+      .select("id, club_name, display_name, city, club_address, account_type")
+      .eq("id", payload.club_id)
+      .eq("account_type", "circolo")
+      .single();
+
+    if (!club) {
+      return NextResponse.json({ error: "Club non trovato." }, { status: 404 });
+    }
+
+    locationName = club.club_address || club.club_name || club.display_name || locationName;
+    city = club.city || city;
+    title = title || `Evento presso ${club.club_name || club.display_name || "club"}`;
+  }
+
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select("account_type")
@@ -109,13 +131,13 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.rpc("create_event", {
     p_sport: payload.sport,
     p_sport_emoji: payload.sport_emoji,
-    p_title: payload.title.trim(),
+    p_title: title,
     p_starts_at: startsAt.toISOString(),
-    p_location_name: payload.location_name.trim(),
-    p_city: payload.city.trim(),
+    p_location_name: locationName,
+    p_city: city,
     p_total_spots: totalSpots,
     p_entry_type: payload.entry_type,
-    p_address: payload.location_name.trim(),
+    p_address: locationName,
     p_lat: null,
     p_lng: null,
     p_notes: payload.notes?.trim() || "",
