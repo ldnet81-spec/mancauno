@@ -5,6 +5,7 @@ import { createClient } from "../../../lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { formatDateTimeItaly } from "../../../lib/date-time";
 
 type EventPreview = {
   title: string;
@@ -17,15 +18,7 @@ type EventPreview = {
 };
 
 function formatEventDate(date: string) {
-  const startsAt = new Date(date);
-
-  return new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAt);
+  return formatDateTimeItaly(date);
 }
 
 function formatAvailability(remainingSpots: number | null, status: string | null) {

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server";
+import {
+  formatDateTimeItaly,
+  italianDateTimeToUtcIso,
+} from "../../../../../lib/date-time";
 
 type RouteProps = {
   params: Promise<{
@@ -12,13 +16,7 @@ function getTrimmedValue(formData: FormData, key: string) {
 }
 
 function formatEventDate(date: string) {
-  return new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  return formatDateTimeItaly(date);
 }
 
 function hasChanged(previousValue: unknown, nextValue: unknown) {
@@ -38,7 +36,7 @@ export async function POST(request: Request, { params }: RouteProps) {
   }
 
   const { data: existingEvent } = await supabase
-    .from("events")
+    .from("event_with_counts")
     .select(
       "id, creator_id, short_code, title, sport, sport_emoji, starts_at, location_name, city, total_spots, entry_type, notes"
     )
@@ -114,7 +112,8 @@ export async function POST(request: Request, { params }: RouteProps) {
     );
   }
 
-  const startsAt = new Date(`${date}T${time}`);
+  const nextStartsAt = italianDateTimeToUtcIso(date, time);
+  const startsAt = new Date(nextStartsAt);
 
   if (Number.isNaN(startsAt.getTime())) {
     return NextResponse.redirect(
@@ -155,7 +154,6 @@ export async function POST(request: Request, { params }: RouteProps) {
     );
   }
 
-  const nextStartsAt = startsAt.toISOString();
   const changedFields = {
     title: hasChanged(existingEvent.title, title),
     dateTime: existingEvent.starts_at !== nextStartsAt,

@@ -2,6 +2,7 @@ import { createClient } from "../../../lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AppHeaderServer from "../../../components/AppHeaderServer";
+import { formatDateTimeItaly } from "../../../lib/date-time";
 
 type MyEventsPageProps = {
   searchParams: Promise<{
@@ -14,15 +15,7 @@ type MyEventsPageProps = {
 };
 
 function formatDate(date: string) {
-  const startsAt = new Date(date);
-
-  return new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAt);
+  return formatDateTimeItaly(date);
 }
 
 function getParticipationLabel(status: string) {

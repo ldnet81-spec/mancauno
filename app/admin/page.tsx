@@ -2,6 +2,7 @@
 import AppHeaderServer from "../../components/AppHeaderServer";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { formatDateTimeItaly } from "../../lib/date-time";
 
 type AdminPageProps = {
   searchParams: Promise<{
@@ -29,13 +30,7 @@ function formatRemainingSpots(remainingSpots: number) {
 }
 
 function formatDate(date: string) {
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  return formatDateTimeItaly(date);
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {

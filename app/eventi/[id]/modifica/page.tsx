@@ -30,7 +30,7 @@ export default async function EditEventPage({
   }
 
   const { data: event } = await supabase
-    .from("events")
+    .from("event_with_counts")
     .select(
       "id, creator_id, short_code, sport, sport_emoji, title, starts_at, location_name, city, total_spots, entry_type, notes, status"
     )

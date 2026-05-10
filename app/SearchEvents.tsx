@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { formatDateItaly, formatTimeItaly } from "../lib/date-time";
 
 type EventItem = {
   id: string;
@@ -376,7 +377,8 @@ export default function SearchEvents({
                     </h2>
 
                     <p className="mt-2 text-sm text-gray-700">
-                      {formatEventDate(event.starts_at)}
+                      {formatDateItaly(event.starts_at)} ·{" "}
+                      {formatTimeItaly(event.starts_at)}
                     </p>
 
                     <p className="mt-1 text-sm text-gray-700">

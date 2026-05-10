@@ -10,6 +10,11 @@ import CancelEventButton from "./CancelEventButton";
 import UpdateTotalSpotsForm from "./UpdateTotalSpotsForm";
 import CancelParticipationButton from "./CancelParticipationButton";
 import Link from "next/link";
+import {
+  formatDateItaly,
+  formatDateTimeItaly,
+  formatTimeItaly,
+} from "../../../lib/date-time";
 
 type EventPageProps = {
   params: Promise<{
@@ -66,15 +71,7 @@ export async function generateMetadata({
     };
   }
 
-  const startsAt = new Date(event.starts_at);
-
-  const formattedDate = new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAt);
+  const formattedDate = formatDateTimeItaly(event.starts_at);
 
   const remainingSpots = event.remaining_spots ?? 0;
   const waitlistedCount = event.waitlisted_count ?? 0;
@@ -172,18 +169,8 @@ export default async function EventPage({ params }: EventPageProps) {
     currentParticipationStatus = status ?? null;
   }
 
-  const startsAt = new Date(event.starts_at);
-
-  const formattedDate = new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(startsAt);
-
-  const formattedTime = new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAt);
+  const formattedDate = formatDateItaly(event.starts_at);
+  const formattedTime = formatTimeItaly(event.starts_at);
 
   const remainingSpots = event.remaining_spots ?? 0;
   const waitlistedCount = event.waitlisted_count ?? 0;

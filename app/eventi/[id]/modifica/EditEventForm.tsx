@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  toItalyDateInputValue,
+  toItalyTimeInputValue,
+} from "../../../../lib/date-time";
 
 type EntryType = "open" | "approval";
 
@@ -35,31 +39,14 @@ const sports = [
   { label: "Altro evento", emoji: "✨" },
 ];
 
-function toDateInputValue(date: string) {
-  const startsAt = new Date(date);
-  const year = startsAt.getFullYear();
-  const month = String(startsAt.getMonth() + 1).padStart(2, "0");
-  const day = String(startsAt.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function toTimeInputValue(date: string) {
-  const startsAt = new Date(date);
-  const hours = String(startsAt.getHours()).padStart(2, "0");
-  const minutes = String(startsAt.getMinutes()).padStart(2, "0");
-
-  return `${hours}:${minutes}`;
-}
-
 export default function EditEventForm({
   event,
   approvedCount,
 }: EditEventFormProps) {
   const [sport, setSport] = useState(event.sport);
   const [sportEmoji, setSportEmoji] = useState(event.sport_emoji);
-  const [date, setDate] = useState(toDateInputValue(event.starts_at));
-  const [time, setTime] = useState(toTimeInputValue(event.starts_at));
+  const [date, setDate] = useState(toItalyDateInputValue(event.starts_at));
+  const [time, setTime] = useState(toItalyTimeInputValue(event.starts_at));
   const [totalSpots, setTotalSpots] = useState(event.total_spots);
 
   function handleSportChange(value: string) {

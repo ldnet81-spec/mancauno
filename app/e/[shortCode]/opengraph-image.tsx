@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createPublicClient } from "../../../lib/supabase/public";
+import { formatDateItaly, formatTimeItaly } from "../../../lib/date-time";
 
 export const size = {
   width: 1200,
@@ -117,18 +118,8 @@ export default async function Image({ params }: OgImageProps) {
     );
   }
 
-  const startsAt = new Date(event.starts_at);
-
-  const formattedDate = new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(startsAt);
-
-  const formattedTime = new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAt);
+  const formattedDate = formatDateItaly(event.starts_at);
+  const formattedTime = formatTimeItaly(event.starts_at);
 
   const remainingSpots = event.remaining_spots ?? 0;
   const waitlistedCount = event.waitlisted_count ?? 0;
