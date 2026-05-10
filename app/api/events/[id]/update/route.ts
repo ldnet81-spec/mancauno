@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server";
+import { createAdminClient } from "../../../../../lib/supabase/admin";
 import {
   formatDateTimeItaly,
   italianDateTimeToUtcIso,
@@ -35,8 +36,19 @@ export async function POST(request: Request, { params }: RouteProps) {
     return NextResponse.redirect(new URL("/auth/quick-signup", request.url));
   }
 
-  const { data: existingEvent } = await supabase
-    .from("event_with_counts")
+  const adminSupabase = createAdminClient();
+
+  if (!adminSupabase) {
+    return NextResponse.redirect(
+      new URL(
+        "/profilo/eventi?error=Modifica evento non configurata: manca SUPABASE_SERVICE_ROLE_KEY.",
+        request.url
+      )
+    );
+  }
+
+  const { data: existingEvent } = await adminSupabase
+    .from("events")
     .select(
       "id, creator_id, short_code, title, sport, sport_emoji, starts_at, location_name, city, total_spots, entry_type, notes"
     )
@@ -137,7 +149,7 @@ export async function POST(request: Request, { params }: RouteProps) {
     );
   }
 
-  const { count: approvedCount } = await supabase
+  const { count: approvedCount } = await adminSupabase
     .from("participations")
     .select("id", { count: "exact", head: true })
     .eq("event_id", id)
@@ -166,7 +178,7 @@ export async function POST(request: Request, { params }: RouteProps) {
 
   const shouldNotifyParticipants = Object.values(changedFields).some(Boolean);
 
-  const { error } = await supabase
+  const { error } = await adminSupabase
     .from("events")
     .update({
       sport,
@@ -193,7 +205,7 @@ export async function POST(request: Request, { params }: RouteProps) {
   }
 
   if (shouldNotifyParticipants) {
-    const { data: participations } = await supabase
+    const { data: participations } = await adminSupabase
       .from("participations")
       .select("id, user_id")
       .eq("event_id", id)
@@ -220,7 +232,7 @@ export async function POST(request: Request, { params }: RouteProps) {
         })) ?? [];
 
     if (notifications.length) {
-      await supabase.from("notifications").insert(notifications);
+      await adminSupabase.from("notifications").insert(notifications);
     }
   }
 

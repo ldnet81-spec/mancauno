@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import AppHeaderServer from "../../../../components/AppHeaderServer";
 import { createClient } from "../../../../lib/supabase/server";
+import { createAdminClient } from "../../../../lib/supabase/admin";
 import EditEventForm from "./EditEventForm";
 
 type EditEventPageProps = {
@@ -29,8 +30,16 @@ export default async function EditEventPage({
     redirect("/auth/quick-signup");
   }
 
-  const { data: event } = await supabase
-    .from("event_with_counts")
+  const adminSupabase = createAdminClient();
+
+  if (!adminSupabase) {
+    redirect(
+      "/profilo/eventi?error=Modifica evento non configurata: manca SUPABASE_SERVICE_ROLE_KEY."
+    );
+  }
+
+  const { data: event } = await adminSupabase
+    .from("events")
     .select(
       "id, creator_id, short_code, sport, sport_emoji, title, starts_at, location_name, city, total_spots, entry_type, notes, status"
     )
@@ -45,7 +54,7 @@ export default async function EditEventPage({
     redirect("/profilo/eventi?error=Non puoi modificare questo evento.");
   }
 
-  const { count: approvedCount } = await supabase
+  const { count: approvedCount } = await adminSupabase
     .from("participations")
     .select("id", { count: "exact", head: true })
     .eq("event_id", event.id)
