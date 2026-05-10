@@ -28,7 +28,7 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name")
+    .select("id, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services")
     .eq("id", user.id)
     .single();
 
@@ -186,6 +186,13 @@ const participationCount =
     account_type: profile.account_type,
     phone: profile.phone,
     club_name: profile.club_name,
+    club_address: profile.club_address,
+    club_whatsapp: profile.club_whatsapp,
+    club_email: profile.club_email,
+    club_website: profile.club_website,
+    club_instagram: profile.club_instagram,
+    club_sports: profile.club_sports,
+    club_services: profile.club_services,
   }}
 />
       </section>

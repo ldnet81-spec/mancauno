@@ -14,8 +14,40 @@ type ProfileFormProps = {
     account_type: string | null;
     phone: string | null;
     club_name: string | null;
+    club_address: string | null;
+    club_whatsapp: string | null;
+    club_email: string | null;
+    club_website: string | null;
+    club_instagram: string | null;
+    club_sports: string[] | null;
+    club_services: string[] | null;
   };
 };
+
+const availableSports = [
+  "Calcio/calcetto",
+  "Padel",
+  "Tennis",
+  "Beach volley",
+  "Basket",
+  "Running",
+  "MTB",
+  "Trekking",
+  "Nuoto",
+  "Allenamento",
+  "Lezione privata",
+];
+
+const availableServices = [
+  "Spogliatoi",
+  "Parcheggio",
+  "Bar",
+  "Istruttori",
+  "Noleggio attrezzatura",
+  "Docce",
+  "Illuminazione serale",
+  "Area relax",
+];
 
 export default function ProfileForm({ profile }: ProfileFormProps) {
   const router = useRouter();
@@ -29,6 +61,19 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
     profile.account_type === "circolo" ? "circolo" : "privato"
   );
   const [clubName, setClubName] = useState(profile.club_name ?? "");
+  const [clubAddress, setClubAddress] = useState(profile.club_address ?? "");
+  const [clubWhatsapp, setClubWhatsapp] = useState(profile.club_whatsapp ?? "");
+  const [clubEmail, setClubEmail] = useState(profile.club_email ?? "");
+  const [clubWebsite, setClubWebsite] = useState(profile.club_website ?? "");
+  const [clubInstagram, setClubInstagram] = useState(
+    profile.club_instagram ?? ""
+  );
+  const [clubSports, setClubSports] = useState<string[]>(
+    profile.club_sports ?? []
+  );
+  const [clubServices, setClubServices] = useState<string[]>(
+    profile.club_services ?? []
+  );
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
@@ -91,6 +136,18 @@ async function uploadAvatar() {
           phone: phone.trim() || null,
           account_type: accountType,
           club_name: accountType === "circolo" ? clubName.trim() : null,
+          club_address:
+            accountType === "circolo" ? clubAddress.trim() || null : null,
+          club_whatsapp:
+            accountType === "circolo" ? clubWhatsapp.trim() || null : null,
+          club_email:
+            accountType === "circolo" ? clubEmail.trim() || null : null,
+          club_website:
+            accountType === "circolo" ? clubWebsite.trim() || null : null,
+          club_instagram:
+            accountType === "circolo" ? clubInstagram.trim() || null : null,
+          club_sports: accountType === "circolo" ? clubSports : [],
+          club_services: accountType === "circolo" ? clubServices : [],
           avatar_url: uploadedAvatarUrl,
         })
         .eq("id", profile.id);
@@ -109,6 +166,19 @@ async function uploadAvatar() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleSelection(
+    value: string,
+    selectedValues: string[],
+    setSelectedValues: (values: string[]) => void
+  ) {
+    if (selectedValues.includes(value)) {
+      setSelectedValues(selectedValues.filter((item) => item !== value));
+      return;
+    }
+
+    setSelectedValues([...selectedValues, value]);
   }
 
   return (
@@ -178,6 +248,107 @@ async function uploadAvatar() {
               className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
             />
           </label>
+
+          <label className="mt-4 block">
+            <span className="text-sm font-medium">Indirizzo</span>
+            <input
+              value={clubAddress}
+              onChange={(event) => setClubAddress(event.target.value)}
+              placeholder="Via Roma 10"
+              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+            />
+          </label>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-sm font-medium">WhatsApp</span>
+              <input
+                type="tel"
+                value={clubWhatsapp}
+                onChange={(event) => setClubWhatsapp(event.target.value)}
+                placeholder="+39 333 1234567"
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium">Email club</span>
+              <input
+                type="email"
+                value={clubEmail}
+                onChange={(event) => setClubEmail(event.target.value)}
+                placeholder="info@club.it"
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-sm font-medium">Sito web</span>
+              <input
+                type="url"
+                value={clubWebsite}
+                onChange={(event) => setClubWebsite(event.target.value)}
+                placeholder="https://www.tuoclub.it"
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium">Instagram</span>
+              <input
+                value={clubInstagram}
+                onChange={(event) => setClubInstagram(event.target.value)}
+                placeholder="https://instagram.com/tuoclub"
+                className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4">
+            <span className="text-sm font-medium">Sport disponibili</span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {availableSports.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() =>
+                    toggleSelection(item, clubSports, setClubSports)
+                  }
+                  className={`rounded-full px-3 py-1 text-sm font-medium ${
+                    clubSports.includes(item)
+                      ? "bg-black !text-white"
+                      : "border border-gray-200 bg-white text-gray-700"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <span className="text-sm font-medium">Servizi</span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {availableServices.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() =>
+                    toggleSelection(item, clubServices, setClubServices)
+                  }
+                  className={`rounded-full px-3 py-1 text-sm font-medium ${
+                    clubServices.includes(item)
+                      ? "bg-black !text-white"
+                      : "border border-gray-200 bg-white text-gray-700"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
 

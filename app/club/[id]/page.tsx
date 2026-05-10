@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeaderServer from "../../../components/AppHeaderServer";
+import { createClient } from "../../../lib/supabase/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { formatDateItaly, formatTimeItaly } from "../../../lib/date-time";
+import FollowClubButton from "./FollowClubButton";
 
 type ClubPageProps = {
   params: Promise<{
@@ -13,6 +15,14 @@ type ClubPageProps = {
 
 function getClubName(profile: any) {
   return profile.club_name || profile.display_name || "Club mancauno";
+}
+
+function getExternalHref(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return value.startsWith("http") ? value : `https://${value}`;
 }
 
 function getWhatsAppHref(phone: string | null) {
@@ -72,15 +82,20 @@ export async function generateMetadata({
 export default async function ClubPage({ params }: ClubPageProps) {
   const { id } = await params;
   const adminSupabase = createAdminClient();
+  const supabase = await createClient();
 
   if (!adminSupabase) {
     notFound();
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select(
-      "id, display_name, city, bio, avatar_url, account_type, phone, club_name"
+      "id, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services"
     )
     .eq("id", id)
     .single();
@@ -99,7 +114,22 @@ export default async function ClubPage({ params }: ClubPageProps) {
     .limit(20);
 
   const clubName = getClubName(profile);
-  const whatsappHref = getWhatsAppHref(profile.phone);
+  const whatsappHref = getWhatsAppHref(profile.club_whatsapp || profile.phone);
+  const websiteHref = getExternalHref(profile.club_website);
+  const instagramHref = getExternalHref(profile.club_instagram);
+  const { count: followerCount } = await adminSupabase
+    .from("club_followers")
+    .select("club_id", { count: "exact", head: true })
+    .eq("club_id", id);
+  const { data: existingFollow } =
+    user && user.id !== id
+      ? await adminSupabase
+          .from("club_followers")
+          .select("club_id")
+          .eq("club_id", id)
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : { data: null };
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl bg-white px-6 py-8 text-black">
@@ -132,7 +162,9 @@ export default async function ClubPage({ params }: ClubPageProps) {
           </h1>
 
           {profile.city ? (
-            <p className="mt-2 text-gray-600">{profile.city}</p>
+            <p className="mt-2 text-gray-600">
+              {[profile.city, profile.club_address].filter(Boolean).join(" · ")}
+            </p>
           ) : null}
 
           {profile.bio ? (
@@ -144,7 +176,13 @@ export default async function ClubPage({ params }: ClubPageProps) {
             </p>
           )}
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <FollowClubButton
+              clubId={id}
+              initialFollowing={Boolean(existingFollow)}
+              isLoggedIn={Boolean(user)}
+            />
+
             {profile.phone ? (
               <a
                 href={`tel:${profile.phone}`}
@@ -165,6 +203,60 @@ export default async function ClubPage({ params }: ClubPageProps) {
               </a>
             ) : null}
           </div>
+
+          <div className="mt-5 grid gap-3 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700 sm:grid-cols-2">
+            {profile.club_email ? (
+              <a href={`mailto:${profile.club_email}`}>
+                Email: {profile.club_email}
+              </a>
+            ) : null}
+
+            {websiteHref ? (
+              <a href={websiteHref} target="_blank" rel="noreferrer">
+                Sito web
+              </a>
+            ) : null}
+
+            {instagramHref ? (
+              <a href={instagramHref} target="_blank" rel="noreferrer">
+                Instagram
+              </a>
+            ) : null}
+
+            <span>{followerCount ?? 0} follower</span>
+          </div>
+
+          {profile.club_sports?.length ? (
+            <div className="mt-6">
+              <h2 className="font-semibold">Sport disponibili</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profile.club_sports.map((sport: string) => (
+                  <span
+                    key={sport}
+                    className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700"
+                  >
+                    {sport}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {profile.club_services?.length ? (
+            <div className="mt-6">
+              <h2 className="font-semibold">Servizi</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profile.club_services.map((service: string) => (
+                  <span
+                    key={service}
+                    className="rounded-full border border-gray-200 px-3 py-1 text-sm font-medium text-gray-700"
+                  >
+                    {service}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -180,14 +272,31 @@ export default async function ClubPage({ params }: ClubPageProps) {
           </div>
 
           <Link
-            href="/eventi/nuovo"
+            href={`/eventi/nuovo?club=${id}`}
             className="hidden rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-black sm:block"
           >
-            Crea evento
+            Crea evento presso questo club
           </Link>
         </div>
 
         <div className="mt-5 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <a
+              href="#eventi-club"
+              className="rounded-xl bg-black px-4 py-3 text-center font-semibold !text-white"
+            >
+              Vedi eventi disponibili
+            </a>
+            <Link
+              href={`/eventi/nuovo?club=${id}`}
+              className="rounded-xl border border-gray-300 px-4 py-3 text-center font-semibold text-black"
+            >
+              Crea evento presso questo club
+            </Link>
+          </div>
+
+          <div id="eventi-club" className="h-1" />
+
           {!events?.length ? (
             <div className="rounded-3xl border border-gray-200 p-6">
               <h3 className="text-xl font-semibold">
