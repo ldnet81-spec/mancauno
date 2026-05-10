@@ -24,6 +24,9 @@ type SearchEventsProps = {
   events: EventItem[];
 };
 
+type DateFilter = "all" | "today" | "tomorrow" | "weekend";
+type SortFilter = "date" | "spots";
+
 const sportFilters = [
   "Tutti",
   "Calcetto",
@@ -51,6 +54,36 @@ function formatEventDate(date: string) {
   }).format(startsAt);
 
   return `${day} · ${time}`;
+}
+
+function isSameDay(firstDate: Date, secondDate: Date) {
+  return (
+    firstDate.getFullYear() === secondDate.getFullYear() &&
+    firstDate.getMonth() === secondDate.getMonth() &&
+    firstDate.getDate() === secondDate.getDate()
+  );
+}
+
+function matchesDateFilter(date: string, filter: DateFilter) {
+  if (filter === "all") {
+    return true;
+  }
+
+  const startsAt = new Date(date);
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (filter === "today") {
+    return isSameDay(startsAt, today);
+  }
+
+  if (filter === "tomorrow") {
+    return isSameDay(startsAt, tomorrow);
+  }
+
+  const day = startsAt.getDay();
+  return day === 0 || day === 6;
 }
 
 function getCreatorName(event: EventItem) {
@@ -85,18 +118,41 @@ function getAvailabilityBadge(remainingSpots: number) {
 export default function SearchEvents({ events }: SearchEventsProps) {
   const [query, setQuery] = useState("");
   const [selectedSport, setSelectedSport] = useState("Tutti");
+  const [selectedCity, setSelectedCity] = useState("Tutte");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [sortBy, setSortBy] = useState<SortFilter>("date");
+
+  const cityOptions = useMemo(() => {
+    return Array.from(
+      new Set(events.map((event) => event.city).filter(Boolean))
+    ).sort((firstCity, secondCity) =>
+      firstCity.localeCompare(secondCity, "it")
+    );
+  }, [events]);
 
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    const sortedEvents = [...events].sort(
-      (a, b) =>
-        new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-    );
+    const sortedEvents = [...events].sort((a, b) => {
+      if (sortBy === "spots") {
+        const spotsDifference = b.remaining_spots - a.remaining_spots;
+
+        if (spotsDifference !== 0) {
+          return spotsDifference;
+        }
+      }
+
+      return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+    });
 
     return sortedEvents.filter((event) => {
       const matchesSport =
         selectedSport === "Tutti" || event.sport === selectedSport;
+      const matchesCity =
+        selectedCity === "Tutte" || event.city === selectedCity;
+      const matchesDate = matchesDateFilter(event.starts_at, dateFilter);
+      const matchesAvailability = !onlyAvailable || event.remaining_spots > 0;
 
       const searchableText = [
         event.city,
@@ -113,9 +169,40 @@ export default function SearchEvents({ events }: SearchEventsProps) {
       const matchesQuery =
         !normalizedQuery || searchableText.includes(normalizedQuery);
 
-      return matchesSport && matchesQuery;
+      return (
+        matchesSport &&
+        matchesCity &&
+        matchesDate &&
+        matchesAvailability &&
+        matchesQuery
+      );
     });
-  }, [events, query, selectedSport]);
+  }, [
+    dateFilter,
+    events,
+    onlyAvailable,
+    query,
+    selectedCity,
+    selectedSport,
+    sortBy,
+  ]);
+
+  const hasActiveFilters =
+    query ||
+    selectedSport !== "Tutti" ||
+    selectedCity !== "Tutte" ||
+    dateFilter !== "all" ||
+    onlyAvailable ||
+    sortBy !== "date";
+
+  function resetFilters() {
+    setQuery("");
+    setSelectedSport("Tutti");
+    setSelectedCity("Tutte");
+    setDateFilter("all");
+    setOnlyAvailable(false);
+    setSortBy("date");
+  }
 
   return (
     <>
@@ -152,13 +239,84 @@ export default function SearchEvents({ events }: SearchEventsProps) {
           />
         </label>
 
-        {query || selectedSport !== "Tutti" ? (
-          <p className="mt-2 text-sm text-gray-600">
-            {filteredEvents.length === 1
-              ? "1 evento trovato"
-              : `${filteredEvents.length} eventi trovati`}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-medium text-gray-600">Citta</span>
+
+            <select
+              value={selectedCity}
+              onChange={(event) => setSelectedCity(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black outline-none focus:border-black"
+            >
+              <option value="Tutte">Tutte</option>
+              {cityOptions.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-gray-600">Quando</span>
+
+            <select
+              value={dateFilter}
+              onChange={(event) =>
+                setDateFilter(event.target.value as DateFilter)
+              }
+              className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black outline-none focus:border-black"
+            >
+              <option value="all">Qualsiasi data</option>
+              <option value="today">Oggi</option>
+              <option value="tomorrow">Domani</option>
+              <option value="weekend">Weekend</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-gray-600">Ordina</span>
+
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as SortFilter)}
+              className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black outline-none focus:border-black"
+            >
+              <option value="date">Prima i prossimi</option>
+              <option value="spots">Prima con piu posti</option>
+            </select>
+          </label>
+
+          <label className="mt-5 flex min-h-10 items-center rounded-xl border border-gray-200 px-3 text-sm font-medium text-gray-700">
+            <input
+              type="checkbox"
+              checked={onlyAvailable}
+              onChange={(event) => setOnlyAvailable(event.target.checked)}
+              className="mr-2 h-4 w-4"
+            />
+            Solo con posti
+          </label>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-600">
+            {hasActiveFilters
+              ? filteredEvents.length === 1
+                ? "1 evento trovato"
+                : `${filteredEvents.length} eventi trovati`
+              : `${events.length} eventi disponibili`}
           </p>
-        ) : null}
+
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-sm font-medium text-black underline underline-offset-4"
+            >
+              Azzera
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <section className="space-y-3">
@@ -169,6 +327,21 @@ export default function SearchEvents({ events }: SearchEventsProps) {
             <p className="mt-2 text-gray-600">
               Prova con un’altra città o attività, oppure crea un nuovo evento.
             </p>
+
+            {cityOptions.length ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {cityOptions.slice(0, 4).map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => setSelectedCity(city)}
+                    className="rounded-full border border-gray-200 px-3 py-1 text-sm font-medium text-gray-700"
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <Link
               href="/eventi/nuovo"

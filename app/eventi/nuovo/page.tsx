@@ -100,6 +100,43 @@ export default function NewEventPage() {
     );
   }
 
+  function setQuickDate(daysFromToday: number) {
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + daysFromToday);
+
+    const year = nextDate.getFullYear();
+    const month = String(nextDate.getMonth() + 1).padStart(2, "0");
+    const day = String(nextDate.getDate()).padStart(2, "0");
+
+    setDate(`${year}-${month}-${day}`);
+  }
+
+  function updateTotalSpots(nextValue: number) {
+    const safeValue = Number.isFinite(nextValue) ? nextValue : 2;
+    const clampedValue = Math.min(100, Math.max(2, safeValue));
+    setTotalSpots(clampedValue);
+  }
+
+  function getPreviewDate() {
+    if (!date || !time) {
+      return "Data e ora da scegliere";
+    }
+
+    const startsAt = new Date(`${date}T${time}`);
+
+    if (Number.isNaN(startsAt.getTime())) {
+      return "Data e ora non valide";
+    }
+
+    return new Intl.DateTimeFormat("it-IT", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(startsAt);
+  }
+
   async function createEvent() {
     setLoading(true);
     setErrorMessage("");
@@ -176,6 +213,21 @@ export default function NewEventPage() {
     router.push(`/e/${data.short_code}`);
   }
 
+  const completedRequiredFields = [
+    title.trim(),
+    date,
+    time,
+    locationName.trim(),
+    city.trim(),
+    totalSpots >= 2 ? String(totalSpots) : "",
+  ].filter(Boolean).length;
+
+  const isEventReady = completedRequiredFields === 6;
+  const previewTitle = title.trim() || `${sport} da organizzare`;
+  const previewLocation =
+    [locationName.trim(), city.trim()].filter(Boolean).join(", ") ||
+    "Luogo da indicare";
+
   return (
     <main className="mx-auto min-h-screen max-w-md bg-white px-6 pb-28 pt-8 text-black sm:pb-8">
       <AppHeader />
@@ -197,6 +249,35 @@ export default function NewEventPage() {
       ) : null}
 
       <div className="space-y-5">
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-black">
+              Dati essenziali
+            </p>
+
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
+              {completedRequiredFields}/6 completati
+            </span>
+          </div>
+
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+            <div
+              className="h-full rounded-full bg-black transition-all"
+              style={{ width: `${(completedRequiredFields / 6) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Cosa
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">
+              Che evento vuoi creare?
+            </h2>
+          </div>
+
         <label className="block">
           <span className="text-sm font-medium text-black">Sport</span>
 
@@ -223,6 +304,43 @@ export default function NewEventPage() {
             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
+        </section>
+
+        <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Quando e dove
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">
+              Aiuta le persone a capire subito se possono esserci.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setQuickDate(0)}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700"
+            >
+              Oggi
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setQuickDate(1)}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700"
+            >
+              Domani
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTime(time || "20:00")}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700"
+            >
+              Sera
+            </button>
+          </div>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
@@ -271,25 +389,56 @@ export default function NewEventPage() {
             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
+        </section>
 
-        <label className="block">
-          <span className="text-sm font-medium text-black">
-            Numero partecipanti
-          </span>
+        <section className="space-y-5 rounded-3xl border border-gray-200 p-5">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Posti e regole
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">
+              Decidi quanti posti ci sono e come gestire le richieste.
+            </h2>
+          </div>
 
-          <input
-            type="number"
-            min={2}
-            max={100}
-            value={totalSpots}
-            onChange={(event) => setTotalSpots(Number(event.target.value))}
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-          />
+          <div>
+            <span className="text-sm font-medium text-black">
+              Numero partecipanti
+            </span>
 
-          <p className="mt-2 text-xs text-gray-600">
-            Puoi creare eventi da 2 fino a 100 partecipanti.
-          </p>
-        </label>
+            <div className="mt-2 grid grid-cols-[48px_1fr_48px] gap-2">
+              <button
+                type="button"
+                onClick={() => updateTotalSpots(totalSpots - 1)}
+                className="rounded-xl border border-gray-300 text-xl font-semibold"
+              >
+                -
+              </button>
+
+              <input
+                type="number"
+                min={2}
+                max={100}
+                value={totalSpots}
+                onChange={(event) =>
+                  updateTotalSpots(Number(event.target.value))
+                }
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-black outline-none focus:border-black"
+              />
+
+              <button
+                type="button"
+                onClick={() => updateTotalSpots(totalSpots + 1)}
+                className="rounded-xl border border-gray-300 text-xl font-semibold"
+              >
+                +
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-gray-600">
+              Puoi creare eventi da 2 fino a 100 partecipanti.
+            </p>
+          </div>
 
         <div>
           <span className="text-sm font-medium text-black">
@@ -334,6 +483,49 @@ export default function NewEventPage() {
             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
+        </section>
+
+        <section className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="text-3xl">{sportEmoji}</div>
+
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Anteprima
+              </p>
+
+              <h2 className="mt-1 text-lg font-semibold text-black">
+                {previewTitle}
+              </h2>
+
+              <p className="mt-2 text-sm text-gray-700">
+                {getPreviewDate()}
+              </p>
+
+              <p className="mt-1 text-sm text-gray-700">
+                {previewLocation}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
+                  {totalSpots} posti
+                </span>
+
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
+                  {entryType === "open"
+                    ? "Ingresso libero"
+                    : "Su autorizzazione"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {!isEventReady ? (
+            <p className="mt-4 text-sm text-gray-600">
+              Completa i dati essenziali per pubblicare l'evento.
+            </p>
+          ) : null}
+        </section>
 
         {errorMessage ? (
           <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
@@ -344,7 +536,7 @@ export default function NewEventPage() {
         <button
           type="button"
           onClick={createEvent}
-          disabled={loading}
+          disabled={loading || !isEventReady}
           className="w-full rounded-xl bg-black px-4 py-3 font-medium !text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Creazione in corso..." : "Crea evento"}

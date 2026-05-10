@@ -143,6 +143,12 @@ const participationCount =
       <section className="mb-6 rounded-3xl border border-gray-200 p-6">
         <h2 className="mb-5 text-xl font-semibold">I tuoi dati</h2>
 
+        <div className="mb-5 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+          Nome, foto, citta e bio possono aiutare gli altri utenti a capire chi
+          organizza o partecipa. Il telefono resta un dato di contatto e non
+          viene mostrato pubblicamente nella scheda evento.
+        </div>
+
         <ProfileForm
   profile={{
     id: profile.id,

@@ -3,6 +3,35 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 import AppHeader from "../../components/AppHeader";
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  read_at: string | null;
+  created_at: string;
+  event_id: string | null;
+  participation_id: string | null;
+};
+
+function getNotificationTarget(
+  notification: NotificationItem,
+  eventShortCodes: Map<string, string>
+) {
+  if (notification.type === "join_pending") {
+    return "/profilo/eventi";
+  }
+
+  if (notification.event_id) {
+    const shortCode = eventShortCodes.get(notification.event_id);
+
+    if (shortCode) {
+      return `/e/${shortCode}`;
+    }
+  }
+
+  return "/profilo/eventi";
+}
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -33,15 +62,24 @@ export default async function NotificationsPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (notifications?.length) {
-    await supabase
-      .from("notifications")
-      .update({
-        read_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id)
-      .is("read_at", null);
-  }
+  const eventIds = Array.from(
+    new Set(
+      (notifications ?? [])
+        .map((notification: NotificationItem) => notification.event_id)
+        .filter((eventId): eventId is string => Boolean(eventId))
+    )
+  );
+
+  const { data: linkedEvents } = eventIds.length
+    ? await supabase
+        .from("events")
+        .select("id, short_code")
+        .in("id", eventIds)
+    : { data: [] };
+
+  const eventShortCodes = new Map(
+    (linkedEvents ?? []).map((event: any) => [event.id, event.short_code])
+  );
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 pb-28 pt-8 sm:pb-8">
@@ -74,11 +112,14 @@ export default async function NotificationsPage() {
             </p>
           </div>
         ) : (
-          notifications.map((notification: any) => {
-            const href =
-              notification.type === "join_pending"
-                ? "/profilo/eventi"
-                : "/profilo/eventi";
+          notifications.map((notification: NotificationItem) => {
+            const target = getNotificationTarget(
+              notification,
+              eventShortCodes
+            );
+            const href = `/api/notifications/${notification.id}/read?next=${encodeURIComponent(
+              target
+            )}`;
 
             return (
               <Link

@@ -29,6 +29,22 @@ function formatAvailabilityLabel(remainingSpots: number) {
   return `Mancano ${remainingSpots} posti disponibili`;
 }
 
+function getCreatorName(profile: any, event: any) {
+  if (profile?.account_type === "circolo" && profile.club_name) {
+    return profile.club_name;
+  }
+
+  if (event.creator_account_type === "circolo" && event.creator_club_name) {
+    return event.creator_club_name;
+  }
+
+  return (
+    profile?.display_name ||
+    event.creator_display_name ||
+    "Organizzatore"
+  );
+}
+
 export async function generateMetadata({
   params,
 }: EventPageProps): Promise<Metadata> {
@@ -130,6 +146,19 @@ export default async function EventPage({ params }: EventPageProps) {
     notFound();
   }
 
+  const { data: creatorProfile } = await supabase
+    .from("profiles")
+    .select(
+      "id, display_name, city, bio, avatar_url, account_type, club_name, created_at"
+    )
+    .eq("id", event.creator_id)
+    .single();
+
+  const { count: creatorEventsCount } = await supabase
+    .from("events")
+    .select("id", { count: "exact", head: true })
+    .eq("creator_id", event.creator_id);
+
   let currentParticipationStatus: string | null = null;
 
   if (user) {
@@ -159,6 +188,12 @@ export default async function EventPage({ params }: EventPageProps) {
   const remainingSpots = event.remaining_spots ?? 0;
   const waitlistedCount = event.waitlisted_count ?? 0;
   const confirmedCount = event.confirmed_count ?? 0;
+  const creatorName = getCreatorName(creatorProfile, event);
+  const creatorType =
+    creatorProfile?.account_type === "circolo" ||
+    event.creator_account_type === "circolo"
+      ? "Circolo"
+      : "Organizzatore";
 
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
@@ -304,6 +339,62 @@ export default async function EventPage({ params }: EventPageProps) {
         <h2 className="text-lg font-semibold">Note</h2>
         <p className="mt-2 whitespace-pre-line text-gray-700">
           {event.notes || "Nessuna nota aggiunta dal creatore."}
+        </p>
+      </section>
+
+      <section className="mt-5 rounded-3xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold">Organizzatore</h2>
+
+        <div className="mt-4 flex items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-xl font-semibold">
+            {creatorProfile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={creatorProfile.avatar_url}
+                alt={creatorName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              creatorName.slice(0, 1).toUpperCase()
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <p className="font-semibold text-black">{creatorName}</p>
+            <p className="mt-1 text-sm text-gray-600">{creatorType}</p>
+
+            {creatorProfile?.city ? (
+              <p className="mt-1 text-sm text-gray-600">
+                {creatorProfile.city}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-gray-50 p-4">
+            <p className="text-2xl font-semibold">
+              {creatorEventsCount ?? 0}
+            </p>
+            <p className="mt-1 text-sm text-gray-600">Eventi creati</p>
+          </div>
+
+          <div className="rounded-2xl bg-gray-50 p-4">
+            <p className="text-2xl font-semibold">{confirmedCount}</p>
+            <p className="mt-1 text-sm text-gray-600">Partecipanti qui</p>
+          </div>
+        </div>
+
+        {creatorProfile?.bio ? (
+          <p className="mt-4 whitespace-pre-line text-sm text-gray-700">
+            {creatorProfile.bio}
+          </p>
+        ) : null}
+
+        <p className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+          I contatti personali non sono pubblici nella pagina evento. Usa la
+          richiesta di partecipazione per far sapere all'organizzatore che vuoi
+          unirti.
         </p>
       </section>
 
