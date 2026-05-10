@@ -4,7 +4,7 @@ import { createClient } from "../../lib/supabase/server";
 import BrandHeader from "../../components/BrandHeader";
 import ProfileForm from "./ProfileForm";
 import LogoutButton from "./LogoutButton";
-import AppHeader from "../../components/AppHeader";
+import AppHeaderServer from "../../components/AppHeaderServer";
 import GdprRightsForm from "./GdprRightsForm";
 
 type ProfiloPageProps = {
@@ -57,8 +57,8 @@ const participationCount =
     .is("read_at", null);
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-6 pb-28 pt-8 sm:pb-8">
-      <AppHeader />
+    <main className="mx-auto min-h-screen max-w-md px-6 py-8">
+      <AppHeaderServer />
       <div className="mb-8">
         <BrandHeader />
 

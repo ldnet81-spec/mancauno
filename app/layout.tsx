@@ -26,7 +26,7 @@ export default function RootLayout({
     <html lang="it">
       <body>
         {children}
-        <div className="mx-auto max-w-2xl px-6 pb-28 sm:pb-8">
+        <div className="mx-auto max-w-2xl px-6 pb-8">
           <AppFooter />
         </div>
         <CookieBanner />

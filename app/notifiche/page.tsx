@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
-import AppHeader from "../../components/AppHeader";
+import AppHeaderServer from "../../components/AppHeaderServer";
 
 type NotificationItem = {
   id: string;
@@ -82,11 +82,11 @@ export default async function NotificationsPage() {
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-6 pb-28 pt-8 sm:pb-8">
+    <main className="mx-auto min-h-screen max-w-md px-6 py-8">
       
       
       <div className="mb-8">
-        <AppHeader />
+        <AppHeaderServer />
 
         <h1 className="mt-8 text-3xl font-semibold tracking-tight">
           Notifiche

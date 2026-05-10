@@ -1,5 +1,5 @@
 ﻿import { createClient } from "../../lib/supabase/server";
-import AppHeader from "../../components/AppHeader";
+import AppHeaderServer from "../../components/AppHeaderServer";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -101,10 +101,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const totalEvents = events?.length ?? 0;
   const activeEvents =
     events?.filter((event: any) => event.status === "active").length ?? 0;
-
   return (
-    <main className="mx-auto min-h-screen max-w-5xl bg-white px-6 pb-28 pt-8 text-black sm:pb-8">
-      <AppHeader />
+    <main className="mx-auto min-h-screen max-w-5xl bg-white px-6 py-8 text-black">
+      <AppHeaderServer />
 
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>

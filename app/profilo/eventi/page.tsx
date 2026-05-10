@@ -1,7 +1,7 @@
 import { createClient } from "../../../lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import AppHeader from "../../../components/AppHeader";
+import AppHeaderServer from "../../../components/AppHeaderServer";
 
 type MyEventsPageProps = {
   searchParams: Promise<{
@@ -95,8 +95,8 @@ export default async function MyEventsPage({
     await supabase.rpc("get_my_participations");
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-6 pb-28 pt-8 sm:pb-8">
-      <AppHeader />
+    <main className="mx-auto min-h-screen max-w-md px-6 py-8">
+      <AppHeaderServer />
 
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">
