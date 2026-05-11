@@ -9,7 +9,7 @@ import {
   toItalyTimeInputValue,
 } from "../../lib/date-time";
 
-type AdminSection = "users" | "clubs" | "events" | "settings";
+type AdminSection = "users" | "clubs" | "events" | "support" | "settings";
 
 type AdminPageProps = {
   searchParams: Promise<{
@@ -24,6 +24,7 @@ type AdminPageProps = {
     role_updated?: string;
     limits_updated?: string;
     settings_updated?: string;
+    support_updated?: string;
   }>;
 };
 
@@ -31,11 +32,17 @@ const sections: Array<{ key: AdminSection; label: string }> = [
   { key: "users", label: "Utenti" },
   { key: "clubs", label: "Club" },
   { key: "events", label: "Eventi" },
+  { key: "support", label: "Supporto" },
   { key: "settings", label: "Impostazioni" },
 ];
 
 function getSection(value?: string): AdminSection {
-  if (value === "clubs" || value === "events" || value === "settings") {
+  if (
+    value === "clubs" ||
+    value === "events" ||
+    value === "support" ||
+    value === "settings"
+  ) {
     return value;
   }
 
@@ -100,6 +107,27 @@ function formatMonthlyLimit(profile: any, settings: any[] | null) {
       : getSetting(settings, "default_private_monthly_event_limit", "8");
 
   return `${fallback} eventi/mese`;
+}
+
+function formatSupportStatus(status: string | null | undefined) {
+  if (status === "in_progress") {
+    return "In lavorazione";
+  }
+
+  if (status === "closed") {
+    return "Chiusa";
+  }
+
+  return "Aperta";
+}
+
+function getSupportMailto(request: any) {
+  const subject = encodeURIComponent(`Re: ${request.subject || "Richiesta supporto mancauno"}`);
+  const body = encodeURIComponent(
+    `Ciao,\n\nin merito alla tua richiesta:\n"${request.message || ""}"\n\n`
+  );
+
+  return `mailto:${request.email}?subject=${subject}&body=${body}`;
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -181,6 +209,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const { data: events } = section === "events" ? await eventsQuery : { data: [] };
 
+  let supportQuery = adminSupabase
+    .from("support_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (searchQuery && section === "support") {
+    supportQuery = supportQuery.or(
+      `email.ilike.%${searchQuery}%,subject.ilike.%${searchQuery}%,message.ilike.%${searchQuery}%,request_type.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%`
+    );
+  }
+
+  const { data: supportRequests } =
+    section === "support" ? await supportQuery : { data: [] };
+
   const { data: settings } = await adminSupabase
     .from("app_settings")
     .select("key, value_text, description")
@@ -203,6 +246,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     .from("events")
     .select("id", { count: "exact", head: true })
     .eq("status", "active");
+  const { count: openSupportRequests } = await adminSupabase
+    .from("support_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "open");
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl bg-white px-6 py-8 text-black">
@@ -219,7 +266,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </p>
       </div>
 
-      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         <div className="rounded-2xl bg-gray-50 p-4">
           <p className="text-2xl font-semibold">{totalUsers ?? 0}</p>
           <p className="mt-1 text-sm text-gray-600">Profili totali</p>
@@ -239,9 +286,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <p className="text-2xl font-semibold">{activeEvents ?? 0}</p>
           <p className="mt-1 text-sm text-gray-600">Eventi attivi</p>
         </div>
+
+        <div className="rounded-2xl bg-gray-50 p-4">
+          <p className="text-2xl font-semibold">{openSupportRequests ?? 0}</p>
+          <p className="mt-1 text-sm text-gray-600">Supporto aperto</p>
+        </div>
       </section>
 
-      <nav className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-gray-100 p-1 md:grid-cols-4">
+      <nav className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-gray-100 p-1 md:grid-cols-5">
         {sections.map((item) => (
           <Link
             key={item.key}
@@ -270,7 +322,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       params.event_deleted ||
       params.event_updated ||
       params.limits_updated ||
-      params.settings_updated ? (
+      params.settings_updated ||
+      params.support_updated ? (
         <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
           Modifica salvata correttamente.
         </div>
@@ -292,6 +345,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 placeholder={
                   section === "events"
                     ? "Titolo, citta, sport o luogo"
+                    : section === "support"
+                      ? "Email, oggetto, messaggio o stato"
                     : "Email, nome, telefono, citta o club"
                 }
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
@@ -629,6 +684,158 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           </button>
                         </form>
                       ) : null}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {section === "support" ? (
+        <section>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold">Richieste supporto</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Visualizza problemi, reclami e richieste inviate dal modulo
+                Supporto clienti.
+              </p>
+            </div>
+
+            {openSupportRequests ? (
+              <span className="w-fit rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-700">
+                {openSupportRequests} aperte
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {!supportRequests?.length ? (
+              <p className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                Nessuna richiesta di supporto trovata.
+              </p>
+            ) : (
+              supportRequests.map((request: any) => (
+                <div
+                  key={request.id}
+                  className="rounded-3xl border border-gray-200 bg-white p-5"
+                >
+                  <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            request.status === "closed"
+                              ? "bg-gray-100 text-gray-700"
+                              : request.status === "in_progress"
+                                ? "bg-orange-50 text-orange-700"
+                                : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {formatSupportStatus(request.status)}
+                        </span>
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                          {request.request_type || "assistenza"}
+                        </span>
+                      </div>
+
+                      <h3 className="mt-3 text-lg font-semibold">
+                        {request.subject}
+                      </h3>
+
+                      <div className="mt-3 grid gap-1 text-sm text-gray-700 sm:grid-cols-2">
+                        <p>Email: {request.email}</p>
+                        <p>Data: {formatDate(request.created_at)}</p>
+                        <p className="break-all">ID: {request.id}</p>
+                        {request.user_id ? (
+                          <p className="break-all">Utente: {request.user_id}</p>
+                        ) : (
+                          <p>Utente: non autenticato</p>
+                        )}
+                      </div>
+
+                      <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Messaggio cliente
+                        </p>
+                        <p className="mt-2 whitespace-pre-line text-sm text-gray-800">
+                          {request.message}
+                        </p>
+                      </div>
+
+                      {request.admin_response ? (
+                        <div className="mt-4 rounded-2xl border border-green-100 bg-green-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+                            Risposta salvata
+                          </p>
+                          <p className="mt-2 whitespace-pre-line text-sm text-green-900">
+                            {request.admin_response}
+                          </p>
+                          {request.responded_at ? (
+                            <p className="mt-2 text-xs text-green-700">
+                              Salvata il {formatDate(request.responded_at)}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {request.user_agent ? (
+                        <p className="mt-3 break-all text-xs text-gray-400">
+                          Dispositivo/browser: {request.user_agent}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-3">
+                      <a
+                        href={getSupportMailto(request)}
+                        className="block rounded-xl bg-black px-4 py-3 text-center text-sm font-semibold !text-white"
+                      >
+                        Rispondi via email
+                      </a>
+
+                      <form
+                        method="post"
+                        action={`/api/admin/support/${request.id}/update`}
+                        className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                      >
+                        <label className="block">
+                          <span className="text-xs font-medium text-gray-600">
+                            Stato
+                          </span>
+                          <select
+                            name="status"
+                            defaultValue={request.status || "open"}
+                            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black"
+                          >
+                            <option value="open">Aperta</option>
+                            <option value="in_progress">In lavorazione</option>
+                            <option value="closed">Chiusa</option>
+                          </select>
+                        </label>
+
+                        <label className="block">
+                          <span className="text-xs font-medium text-gray-600">
+                            Risposta interna / testo inviato
+                          </span>
+                          <textarea
+                            name="admin_response"
+                            defaultValue={request.admin_response || ""}
+                            rows={6}
+                            placeholder="Scrivi qui la risposta o una nota di gestione."
+                            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black"
+                          />
+                        </label>
+
+                        <button
+                          type="submit"
+                          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800"
+                        >
+                          Salva gestione richiesta
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </div>

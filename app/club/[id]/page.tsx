@@ -147,31 +147,38 @@ export default async function ClubPage({ params }: ClubPageProps) {
     <main className="mx-auto min-h-screen max-w-3xl bg-white px-6 py-8 text-black">
       <AppHeaderServer />
 
-      <section className="overflow-hidden rounded-3xl border border-gray-200">
-        <div className="h-36 bg-gray-100 sm:h-44">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt={clubName}
-              className="h-full w-full object-cover"
-            />
-          ) : null}
-        </div>
-
-        <div className="p-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
-              Club
-            </span>
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-              Pagina pubblica
-            </span>
+      <section className="rounded-3xl border border-gray-200 p-6">
+        <div className="grid gap-5 sm:grid-cols-[132px_1fr] sm:items-start">
+          <div className="aspect-square w-32 overflow-hidden rounded-3xl border border-gray-200 bg-gray-50 p-3">
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt={clubName}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-white text-4xl font-semibold text-gray-400">
+                {clubName.slice(0, 1).toUpperCase()}
+              </div>
+            )}
           </div>
 
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-            {clubName}
-          </h1>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
+                Club
+              </span>
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                Pagina pubblica
+              </span>
+            </div>
+
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight">
+              {clubName}
+            </h1>
+          </div>
+        </div>
 
           {profile.city ? (
             <p className="mt-2 text-gray-600">
@@ -269,7 +276,6 @@ export default async function ClubPage({ params }: ClubPageProps) {
               </div>
             </div>
           ) : null}
-        </div>
       </section>
 
       <section className="mt-8">
