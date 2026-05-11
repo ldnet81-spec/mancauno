@@ -14,12 +14,12 @@ export default function AppFooter() {
           Professional Business Consultancy
         </a>
       </p>
-{/* 
+
       <p className="mt-2">
         Dati fiscali, sede legale e contatti privacy da completare prima della
         pubblicazione.
       </p>
-*/}
+
       <nav className="mt-4 flex flex-wrap justify-center gap-3">
         <Link href="/privacy" className="underline underline-offset-4">
           Privacy Policy
@@ -27,6 +27,10 @@ export default function AppFooter() {
 
         <Link href="/termini" className="underline underline-offset-4">
           Termini di Servizio
+        </Link>
+
+        <Link href="/supporto" className="underline underline-offset-4">
+          Supporto clienti
         </Link>
       </nav>
     </footer>
