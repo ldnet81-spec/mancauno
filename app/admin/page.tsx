@@ -950,6 +950,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <input
                             type="number"
                             min={2}
+                            max={100}
                             name="total_spots"
                             defaultValue={event.total_spots}
                             className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black"

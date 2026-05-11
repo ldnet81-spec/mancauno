@@ -36,6 +36,12 @@ export default function UpdateTotalSpotsForm({
       return;
     }
 
+    if (totalSpots > 100) {
+      setErrorMessage("Il numero massimo di partecipanti e 100.");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.rpc("update_event_total_spots", {
       p_event_id: eventId,
       p_total_spots: totalSpots,

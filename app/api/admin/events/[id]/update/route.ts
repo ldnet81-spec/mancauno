@@ -100,6 +100,17 @@ export async function POST(request: Request, { params }: RouteProps) {
     );
   }
 
+  if (totalSpots < 2 || totalSpots > 100) {
+    return NextResponse.redirect(
+      new URL(
+        `/admin?section=events&error=${encodeURIComponent(
+          "Il numero di partecipanti deve essere tra 2 e 100."
+        )}`,
+        request.url
+      )
+    );
+  }
+
   const { error } = await adminSupabase
     .from("events")
     .update({
@@ -110,7 +121,7 @@ export async function POST(request: Request, { params }: RouteProps) {
       location_name: value(formData, "location_name"),
       city: value(formData, "city"),
       address: value(formData, "location_name"),
-      total_spots: Math.max(2, Math.floor(totalSpots)),
+      total_spots: Math.floor(totalSpots),
       entry_type: entryType,
       skill_level: skillLevel,
       notes: value(formData, "notes"),
