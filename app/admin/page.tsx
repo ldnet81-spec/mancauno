@@ -326,7 +326,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               impostato un limite specifico sul singolo profilo.
             </p>
 
-            <form method="post" action="/api/admin/settings" className="mt-5 space-y-4">
+            <form
+              method="post"
+              action="/api/admin/settings/update"
+              className="mt-5 space-y-4"
+            >
               <label className="block">
                 <span className="text-sm font-medium text-black">
                   Eventi mensili utenti privati free
