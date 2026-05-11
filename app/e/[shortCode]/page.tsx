@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server";
 import { createPublicClient } from "../../../lib/supabase/public";
+import { createAdminClient } from "../../../lib/supabase/admin";
 import JoinEventButton from "./JoinEventButton";
 import AutoJoinEvent from "./AutoJoinEvent";
 import ShareEventButton from "./ShareEventButton";
@@ -73,6 +74,46 @@ function formatSkillLevel(level: string | null | undefined) {
   }
 
   return "Amatoriale";
+}
+
+function formatParticipationStatus(status: string | null | undefined) {
+  if (status === "approved") {
+    return "Confermato";
+  }
+
+  if (status === "pending") {
+    return "Da approvare";
+  }
+
+  if (status === "waitlisted") {
+    return "In coda";
+  }
+
+  if (status === "rejected") {
+    return "Rifiutato";
+  }
+
+  if (status === "cancelled") {
+    return "Cancellato";
+  }
+
+  return "Richiesta";
+}
+
+function getParticipationStatusClassName(status: string | null | undefined) {
+  if (status === "approved") {
+    return "bg-green-50 text-green-700";
+  }
+
+  if (status === "pending") {
+    return "bg-orange-50 text-orange-700";
+  }
+
+  if (status === "waitlisted") {
+    return "bg-blue-50 text-blue-700";
+  }
+
+  return "bg-gray-100 text-gray-700";
 }
 
 export async function generateMetadata({
@@ -212,6 +253,45 @@ export default async function EventPage({ params }: EventPageProps) {
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
   const isUnavailable = event.status !== "active";
+  let privateParticipants: any[] = [];
+
+  if (isCreator) {
+    const adminSupabase = createAdminClient();
+
+    if (adminSupabase) {
+      const { data: participations } = await adminSupabase
+        .from("participations")
+        .select("id, user_id, status, created_at")
+        .eq("event_id", event.id)
+        .order("created_at", { ascending: true });
+
+      const participantIds =
+        participations
+          ?.map((participation: any) => participation.user_id)
+          .filter(Boolean) ?? [];
+
+      const { data: participantProfiles } = participantIds.length
+        ? await adminSupabase
+            .from("profiles")
+            .select(
+              "id, display_name, email, phone, city, account_type, club_name"
+            )
+            .in("id", participantIds)
+        : { data: [] };
+
+      privateParticipants =
+        participations?.map((participation: any) => {
+          const profile = participantProfiles?.find(
+            (item: any) => item.id === participation.user_id
+          );
+
+          return {
+            ...participation,
+            profile,
+          };
+        }) ?? [];
+    }
+  }
   const availabilityLabel = isUnavailable
     ? "Evento non disponibile"
     : formatAvailabilityLabel(remainingSpots);
@@ -467,6 +547,100 @@ export default async function EventPage({ params }: EventPageProps) {
 
           <div className="mt-5 border-t border-gray-100 pt-5">
             <CancelEventButton eventId={event.id} />
+          </div>
+        </section>
+      ) : null}
+
+      {isCreator ? (
+        <section className="mt-5 rounded-3xl border border-gray-200 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">
+                Partecipanti del tuo evento
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Questo elenco e visibile solo a te come organizzatore.
+              </p>
+            </div>
+
+            <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
+              {privateParticipants.length}
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {!privateParticipants.length ? (
+              <p className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+                Non ci sono ancora richieste o partecipanti per questo evento.
+              </p>
+            ) : (
+              privateParticipants.map((participation: any) => {
+                const profile = participation.profile;
+                const participantName =
+                  profile?.account_type === "circolo" && profile?.club_name
+                    ? profile.club_name
+                    : profile?.display_name || "Partecipante";
+
+                return (
+                  <div
+                    key={participation.id}
+                    className="rounded-2xl border border-gray-200 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-black">
+                          {participantName}
+                        </p>
+
+                        {profile?.city ? (
+                          <p className="mt-1 text-sm text-gray-600">
+                            {profile.city}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${getParticipationStatusClassName(
+                          participation.status
+                        )}`}
+                      >
+                        {formatParticipationStatus(participation.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-1 text-sm text-gray-700">
+                      {profile?.email ? (
+                        <p>
+                          Email:{" "}
+                          <a
+                            href={`mailto:${profile.email}`}
+                            className="underline decoration-gray-300 underline-offset-4"
+                          >
+                            {profile.email}
+                          </a>
+                        </p>
+                      ) : null}
+
+                      {profile?.phone ? (
+                        <p>
+                          Telefono:{" "}
+                          <a
+                            href={`tel:${profile.phone}`}
+                            className="underline decoration-gray-300 underline-offset-4"
+                          >
+                            {profile.phone}
+                          </a>
+                        </p>
+                      ) : null}
+
+                      <p className="text-xs text-gray-400">
+                        Richiesta: {formatDateTimeItaly(participation.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
       ) : null}
