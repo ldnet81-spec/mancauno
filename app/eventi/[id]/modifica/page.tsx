@@ -41,7 +41,7 @@ export default async function EditEventPage({
   const { data: event } = await adminSupabase
     .from("events")
     .select(
-      "id, creator_id, short_code, sport, sport_emoji, title, starts_at, location_name, city, total_spots, entry_type, notes, status"
+      "id, creator_id, short_code, sport, sport_emoji, title, starts_at, location_name, city, total_spots, entry_type, skill_level, notes, status"
     )
     .eq("id", id)
     .single();

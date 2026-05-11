@@ -20,6 +20,29 @@ const sports = [
 ];
 
 type EntryType = "open" | "approval";
+type SkillLevel = "amatoriale" | "intermedio" | "esperto";
+
+const skillLevels: Array<{
+  value: SkillLevel;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "amatoriale",
+    label: "Amatoriale",
+    description: "Per chi vuole divertirsi senza troppa competizione.",
+  },
+  {
+    value: "intermedio",
+    label: "Intermedio",
+    description: "Per chi gioca gia con buona continuita.",
+  },
+  {
+    value: "esperto",
+    label: "Esperto",
+    description: "Per partite o allenamenti piu intensi.",
+  },
+];
 
 type ClubContext = {
   id: string;
@@ -43,6 +66,7 @@ function NewEventForm() {
   const [city, setCity] = useState("");
   const [totalSpots, setTotalSpots] = useState(10);
   const [entryType, setEntryType] = useState<EntryType>("approval");
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>("amatoriale");
   const [notes, setNotes] = useState("");
   const [clubContext, setClubContext] = useState<ClubContext | null>(null);
   const [clubLoading, setClubLoading] = useState(Boolean(clubId));
@@ -73,6 +97,7 @@ function NewEventForm() {
       setCity(parsed.city ?? "");
       setTotalSpots(parsed.totalSpots ?? 10);
       setEntryType(parsed.entryType ?? "approval");
+      setSkillLevel(parsed.skillLevel ?? "amatoriale");
       setNotes(parsed.notes ?? "");
       setRestoreMessage(
         "Abbiamo recuperato l'evento che stavi creando. Controlla i dati e clicca di nuovo su Crea evento."
@@ -113,7 +138,7 @@ function NewEventForm() {
         setClubContext(result);
         setLocationName(result.address || result.name);
         setCity(result.city || "");
-        setTitle(`${sport} presso ${result.name}`);
+        setTitle(`${result.sports?.[0] || sport} presso ${result.name}`);
 
         const firstSport = result.sports?.[0];
         const matchingSport = sports.find((item) => item.label === firstSport);
@@ -137,7 +162,7 @@ function NewEventForm() {
     return () => {
       ignore = true;
     };
-  }, [clubId, sport]);
+  }, [clubId]);
 
   useEffect(() => {
     if (clubContext) {
@@ -169,6 +194,7 @@ function NewEventForm() {
         city,
         totalSpots,
         entryType,
+        skillLevel,
         notes,
       })
     );
@@ -256,6 +282,7 @@ function NewEventForm() {
         city: city.trim(),
         total_spots: totalSpots,
         entry_type: entryType,
+        skill_level: skillLevel,
         notes: notes.trim() || "",
       }),
     });
@@ -562,6 +589,41 @@ function NewEventForm() {
             </div>
           </div>
 
+          <div>
+            <span className="text-sm font-medium text-black">
+              Livello dell'evento
+            </span>
+            <div className="mt-2 grid gap-2">
+              {skillLevels.map((level) => {
+                const isSelected = skillLevel === level.value;
+
+                return (
+                  <button
+                    key={level.value}
+                    type="button"
+                    onClick={() => setSkillLevel(level.value)}
+                    className={`rounded-xl border px-4 py-3 text-left ${
+                      isSelected
+                        ? "border-black bg-black !text-white"
+                        : "border-gray-200 bg-white text-gray-700"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">
+                      {level.label}
+                    </span>
+                    <span
+                      className={`mt-1 block text-xs ${
+                        isSelected ? "text-gray-200" : "text-gray-500"
+                      }`}
+                    >
+                      {level.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <label className="block">
             <span className="text-sm font-medium text-black">Note</span>
             <textarea
@@ -594,6 +656,13 @@ function NewEventForm() {
                   {entryType === "open"
                     ? "Ingresso libero"
                     : "Su autorizzazione"}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
+                  Livello{" "}
+                  {
+                    skillLevels.find((level) => level.value === skillLevel)
+                      ?.label
+                  }
                 </span>
               </div>
             </div>

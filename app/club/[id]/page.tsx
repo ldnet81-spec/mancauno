@@ -42,6 +42,18 @@ function getWhatsAppHref(phone: string | null) {
   return `https://wa.me/${whatsappNumber}`;
 }
 
+function formatSkillLevel(level: string | null | undefined) {
+  if (level === "intermedio") {
+    return "Intermedio";
+  }
+
+  if (level === "esperto") {
+    return "Esperto";
+  }
+
+  return "Amatoriale";
+}
+
 export async function generateMetadata({
   params,
 }: ClubPageProps): Promise<Metadata> {
@@ -327,6 +339,11 @@ export default async function ClubPage({ params }: ClubPageProps) {
                     <p className="mt-1 text-sm text-gray-700">
                       {event.location_name}, {event.city}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                        Livello {formatSkillLevel(event.skill_level)}
+                      </span>
+                    </div>
                   </div>
 
                   <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">

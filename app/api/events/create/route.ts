@@ -14,6 +14,7 @@ type CreateEventPayload = {
   city?: string;
   total_spots?: number;
   entry_type?: "open" | "approval";
+  skill_level?: "amatoriale" | "intermedio" | "esperto";
   notes?: string;
 };
 
@@ -56,6 +57,12 @@ export async function POST(request: Request) {
 
   if (!["open", "approval"].includes(payload.entry_type || "")) {
     return NextResponse.json({ error: "Tipo partecipazione non valido." }, { status: 400 });
+  }
+
+  const skillLevel = payload.skill_level || "amatoriale";
+
+  if (!["amatoriale", "intermedio", "esperto"].includes(skillLevel)) {
+    return NextResponse.json({ error: "Livello evento non valido." }, { status: 400 });
   }
 
   if (totalSpots < 2 || totalSpots > 100) {
@@ -146,6 +153,18 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (data?.short_code) {
+    const { error: levelError } = await adminSupabase
+      .from("events")
+      .update({ skill_level: skillLevel })
+      .eq("short_code", data.short_code)
+      .eq("creator_id", user.id);
+
+    if (levelError) {
+      return NextResponse.json({ error: levelError.message }, { status: 400 });
+    }
   }
 
   return NextResponse.json({ short_code: data?.short_code });

@@ -63,6 +63,18 @@ function getWhatsAppHref(phone: string | null | undefined) {
   return whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
 }
 
+function formatSkillLevel(level: string | null | undefined) {
+  if (level === "intermedio") {
+    return "Intermedio";
+  }
+
+  if (level === "esperto") {
+    return "Esperto";
+  }
+
+  return "Amatoriale";
+}
+
 export async function generateMetadata({
   params,
 }: EventPageProps): Promise<Metadata> {
@@ -291,6 +303,12 @@ export default async function EventPage({ params }: EventPageProps) {
             {event.entry_type === "open"
               ? "Ingresso libero"
               : "Su autorizzazione"}
+          </p>
+
+          <p>
+            <span className="font-medium text-black">Livello</span>
+            <br />
+            {formatSkillLevel(event.skill_level)}
           </p>
 
           <p>

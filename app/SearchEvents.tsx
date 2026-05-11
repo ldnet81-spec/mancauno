@@ -14,6 +14,7 @@ type EventItem = {
   location_name: string;
   city: string;
   remaining_spots: number;
+  skill_level?: string | null;
   waitlisted_count?: number;
   creator_display_name?: string | null;
   creator_avatar_url?: string | null;
@@ -116,6 +117,18 @@ function getAvailabilityBadge(remainingSpots: number) {
     label: `Mancano ${remainingSpots} posti`,
     className: "bg-black !text-white",
   };
+}
+
+function formatSkillLevel(level: string | null | undefined) {
+  if (level === "intermedio") {
+    return "Intermedio";
+  }
+
+  if (level === "esperto") {
+    return "Esperto";
+  }
+
+  return "Amatoriale";
 }
 
 export default function SearchEvents({
@@ -385,6 +398,12 @@ export default function SearchEvents({
                     <p className="mt-1 text-sm text-gray-700">
                       {event.location_name}, {event.city}
                     </p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                        Livello {formatSkillLevel(event.skill_level)}
+                      </span>
+                    </div>
 
                     <div className="mt-4 flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 text-sm font-semibold text-black">

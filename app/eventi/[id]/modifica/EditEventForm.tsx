@@ -7,6 +7,7 @@ import {
 } from "../../../../lib/date-time";
 
 type EntryType = "open" | "approval";
+type SkillLevel = "amatoriale" | "intermedio" | "esperto";
 
 type EditEventFormProps = {
   event: {
@@ -19,6 +20,7 @@ type EditEventFormProps = {
     city: string;
     total_spots: number;
     entry_type: EntryType;
+    skill_level?: SkillLevel | null;
     notes: string | null;
   };
   approvedCount: number;
@@ -37,6 +39,28 @@ const sports = [
   { label: "Allenamento", emoji: "🏋️" },
   { label: "Lezione privata", emoji: "🎯" },
   { label: "Altro evento", emoji: "✨" },
+];
+
+const skillLevels: Array<{
+  value: SkillLevel;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "amatoriale",
+    label: "Amatoriale",
+    description: "Per chi vuole divertirsi senza troppa competizione.",
+  },
+  {
+    value: "intermedio",
+    label: "Intermedio",
+    description: "Per chi gioca gia con buona continuita.",
+  },
+  {
+    value: "esperto",
+    label: "Esperto",
+    description: "Per partite o allenamenti piu intensi.",
+  },
 ];
 
 export default function EditEventForm({
@@ -214,6 +238,24 @@ export default function EditEventForm({
           >
             <option value="approval">Richieste da approvare</option>
             <option value="open">Ingresso automatico finche ci sono posti</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium text-black">
+            Livello dell'evento
+          </span>
+
+          <select
+            name="skill_level"
+            defaultValue={event.skill_level || "amatoriale"}
+            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+          >
+            {skillLevels.map((level) => (
+              <option key={level.value} value={level.value}>
+                {level.label} - {level.description}
+              </option>
+            ))}
           </select>
         </label>
 

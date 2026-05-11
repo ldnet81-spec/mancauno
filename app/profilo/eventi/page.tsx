@@ -63,6 +63,18 @@ function getAvailabilityBadge(remainingSpots: number) {
   };
 }
 
+function formatSkillLevel(level: string | null | undefined) {
+  if (level === "intermedio") {
+    return "Intermedio";
+  }
+
+  if (level === "esperto") {
+    return "Esperto";
+  }
+
+  return "Amatoriale";
+}
+
 export default async function MyEventsPage({
   searchParams,
 }: MyEventsPageProps) {
@@ -250,6 +262,10 @@ export default async function MyEventsPage({
 
                         <p className="mt-1 text-xs text-gray-400">
                           {formatDate(event.starts_at)}
+                        </p>
+
+                        <p className="mt-2 inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                          Livello {formatSkillLevel(event.skill_level)}
                         </p>
                       </div>
 

@@ -50,7 +50,7 @@ export async function POST(request: Request, { params }: RouteProps) {
   const { data: existingEvent } = await adminSupabase
     .from("events")
     .select(
-      "id, creator_id, short_code, title, sport, sport_emoji, starts_at, location_name, city, total_spots, entry_type, notes"
+      "id, creator_id, short_code, title, sport, sport_emoji, starts_at, location_name, city, total_spots, entry_type, skill_level, notes"
     )
     .eq("id", id)
     .single();
@@ -79,6 +79,7 @@ export async function POST(request: Request, { params }: RouteProps) {
   const locationName = getTrimmedValue(formData, "location_name");
   const city = getTrimmedValue(formData, "city");
   const entryType = getTrimmedValue(formData, "entry_type");
+  const skillLevel = getTrimmedValue(formData, "skill_level") || "amatoriale";
   const notes = getTrimmedValue(formData, "notes");
   const totalSpots = Number(formData.get("total_spots"));
 
@@ -107,6 +108,17 @@ export async function POST(request: Request, { params }: RouteProps) {
       new URL(
         `/eventi/${id}/modifica?error=${encodeURIComponent(
           "Tipo di ingresso non valido."
+        )}`,
+        request.url
+      )
+    );
+  }
+
+  if (!["amatoriale", "intermedio", "esperto"].includes(skillLevel)) {
+    return NextResponse.redirect(
+      new URL(
+        `/eventi/${id}/modifica?error=${encodeURIComponent(
+          "Livello evento non valido."
         )}`,
         request.url
       )
@@ -173,6 +185,7 @@ export async function POST(request: Request, { params }: RouteProps) {
     city: hasChanged(existingEvent.city, city),
     totalSpots: Number(existingEvent.total_spots) !== totalSpots,
     entryType: hasChanged(existingEvent.entry_type, entryType),
+    skillLevel: hasChanged(existingEvent.skill_level, skillLevel),
     notes: hasChanged(existingEvent.notes, notes),
   };
 
@@ -189,6 +202,7 @@ export async function POST(request: Request, { params }: RouteProps) {
       city,
       total_spots: totalSpots,
       entry_type: entryType,
+      skill_level: skillLevel,
       address: locationName,
       notes,
     })
