@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../lib/supabase/admin";
 
-const FREE_CLUB_MONTHLY_EVENT_LIMIT = 8;
+const DEFAULT_PRIVATE_MONTHLY_EVENT_LIMIT = 8;
+const DEFAULT_CLUB_MONTHLY_EVENT_LIMIT = 4;
 
 type CreateEventPayload = {
   club_id?: string;
@@ -27,6 +28,29 @@ function getCurrentMonthRange() {
     start: start.toISOString(),
     end: end.toISOString(),
   };
+}
+
+async function getDefaultMonthlyLimit(
+  adminSupabase: NonNullable<ReturnType<typeof createAdminClient>>,
+  accountType: string | null | undefined
+) {
+  const settingKey =
+    accountType === "circolo"
+      ? "default_club_monthly_event_limit"
+      : "default_private_monthly_event_limit";
+  const fallback =
+    accountType === "circolo"
+      ? DEFAULT_CLUB_MONTHLY_EVENT_LIMIT
+      : DEFAULT_PRIVATE_MONTHLY_EVENT_LIMIT;
+
+  const { data } = await adminSupabase
+    .from("app_settings")
+    .select("value_text")
+    .eq("key", settingKey)
+    .maybeSingle();
+
+  const parsed = Number(data?.value_text);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 export async function POST(request: Request) {
@@ -111,12 +135,21 @@ export async function POST(request: Request) {
 
   const { data: profile } = await adminSupabase
     .from("profiles")
-    .select("account_type")
+    .select("account_type, account_plan, monthly_event_limit_override")
     .eq("id", user.id)
     .single();
 
-  if (profile?.account_type === "circolo") {
+  if (profile?.account_plan !== "pro") {
     const { start, end } = getCurrentMonthRange();
+    const defaultMonthlyLimit = await getDefaultMonthlyLimit(
+      adminSupabase,
+      profile?.account_type
+    );
+    const overrideLimit = Number(profile?.monthly_event_limit_override);
+    const monthlyLimit =
+      Number.isFinite(overrideLimit) && overrideLimit >= 0
+        ? overrideLimit
+        : defaultMonthlyLimit;
 
     const { count } = await adminSupabase
       .from("events")
@@ -125,11 +158,13 @@ export async function POST(request: Request) {
       .gte("created_at", start)
       .lt("created_at", end);
 
-    if ((count ?? 0) >= FREE_CLUB_MONTHLY_EVENT_LIMIT) {
+    if ((count ?? 0) >= monthlyLimit) {
       return NextResponse.json(
         {
           error:
-            "Hai raggiunto il limite Free di 8 eventi mensili per circoli. Il piano Pro con eventi illimitati sara disponibile a breve.",
+            profile?.account_type === "circolo"
+              ? `Hai raggiunto il limite Free di ${monthlyLimit} eventi mensili per circoli. Il piano Pro con eventi illimitati sara disponibile a breve.`
+              : `Hai raggiunto il limite Free di ${monthlyLimit} eventi mensili.`,
         },
         { status: 403 }
       );

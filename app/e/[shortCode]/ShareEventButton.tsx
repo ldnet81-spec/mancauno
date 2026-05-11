@@ -18,7 +18,7 @@ export default function ShareEventButton({
       if (navigator.share) {
         await navigator.share({
           title,
-          text: `Unisciti a questo evento su mancauno.it`,
+          text: "Unisciti a questo evento",
           url,
         });
 
