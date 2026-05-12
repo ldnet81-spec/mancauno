@@ -4,6 +4,7 @@ import Link from "next/link";
 import AppHeaderServer from "../components/AppHeaderServer";
 import { createAdminClient } from "../lib/supabase/admin";
 import { createPublicClient } from "../lib/supabase/public";
+import SubscriptionPlans from "../components/SubscriptionPlans";
 import SearchEvents from "./SearchEvents";
 
 export const dynamic = "force-dynamic";
@@ -314,6 +315,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </a>
           ))}
         </div>
+      </section>
+
+      <section className="mt-10">
+        <SubscriptionPlans />
       </section>
 
       {error ? (

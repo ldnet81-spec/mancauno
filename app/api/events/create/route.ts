@@ -163,8 +163,8 @@ export async function POST(request: Request) {
         {
           error:
             profile?.account_type === "circolo"
-              ? `Hai raggiunto il limite Free di ${monthlyLimit} eventi mensili per circoli. Il piano Pro con eventi illimitati sara disponibile a breve.`
-              : `Hai raggiunto il limite Free di ${monthlyLimit} eventi mensili.`,
+              ? `Hai raggiunto il limite Free di ${monthlyLimit} eventi mensili per circoli. Attiva Club Pro per creare eventi illimitati.`
+              : `Hai raggiunto il limite Free di ${monthlyLimit} eventi mensili. Attiva Privato Plus per creare eventi illimitati.`,
         },
         { status: 403 }
       );

@@ -8,6 +8,7 @@ import AppHeaderServer from "../../components/AppHeaderServer";
 import GdprRightsForm from "./GdprRightsForm";
 import ClubProBadge from "../../components/ClubProBadge";
 import PrivatePlusBadge from "../../components/PrivatePlusBadge";
+import SubscriptionPlans from "../../components/SubscriptionPlans";
 
 type ProfiloPageProps = {
   searchParams: Promise<{
@@ -174,6 +175,14 @@ const participationCount =
             )}
           </Link>
         </div>
+      </section>
+
+      <section className="mb-6">
+        <SubscriptionPlans
+          accountType={profile.account_type}
+          currentPlan={profile.account_plan}
+          isLoggedIn
+        />
       </section>
 
       <section className="mb-6 rounded-3xl border border-gray-200 p-6">
