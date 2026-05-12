@@ -6,6 +6,7 @@ import ProfileForm from "./ProfileForm";
 import LogoutButton from "./LogoutButton";
 import AppHeaderServer from "../../components/AppHeaderServer";
 import GdprRightsForm from "./GdprRightsForm";
+import ClubProBadge from "../../components/ClubProBadge";
 
 type ProfiloPageProps = {
   searchParams: Promise<{
@@ -28,7 +29,7 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services")
+    .select("id, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan")
     .eq("id", user.id)
     .single();
 
@@ -100,9 +101,12 @@ const participationCount =
 
           <div className="min-w-0">
             {profile.account_type === "circolo" ? (
-              <span className="mb-2 inline-flex rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
-                Club
-              </span>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
+                  Club
+                </span>
+                {profile.account_plan === "pro" ? <ClubProBadge compact /> : null}
+              </div>
             ) : null}
 
             <h2 className="text-xl font-semibold">

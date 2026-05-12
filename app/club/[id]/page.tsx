@@ -6,6 +6,7 @@ import { createClient } from "../../../lib/supabase/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { formatDateItaly, formatTimeItaly } from "../../../lib/date-time";
 import FollowClubButton from "./FollowClubButton";
+import ClubProBadge from "../../../components/ClubProBadge";
 
 type ClubPageProps = {
   params: Promise<{
@@ -107,7 +108,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select(
-      "id, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services"
+      "id, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan"
     )
     .eq("id", id)
     .single();
@@ -129,6 +130,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
   const whatsappHref = getWhatsAppHref(profile.club_whatsapp || profile.phone);
   const websiteHref = getExternalHref(profile.club_website);
   const instagramHref = getExternalHref(profile.club_instagram);
+  const isClubPro = profile.account_plan === "pro";
   const { count: followerCount } = await adminSupabase
     .from("club_followers")
     .select("club_id", { count: "exact", head: true })
@@ -172,11 +174,14 @@ export default async function ClubPage({ params }: ClubPageProps) {
               <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
                 Pagina pubblica
               </span>
+              {isClubPro ? <ClubProBadge compact /> : null}
             </div>
 
             <h1 className="mt-4 text-3xl font-semibold tracking-tight">
               {clubName}
             </h1>
+
+            {isClubPro ? <ClubProBadge className="mt-4" /> : null}
           </div>
         </div>
 

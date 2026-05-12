@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatDateItaly, formatTimeItaly } from "../lib/date-time";
+import ClubProBadge from "../components/ClubProBadge";
 
 type EventItem = {
   id: string;
@@ -19,6 +20,7 @@ type EventItem = {
   creator_display_name?: string | null;
   creator_avatar_url?: string | null;
   creator_account_type?: string | null;
+  creator_account_plan?: string | null;
   creator_club_name?: string | null;
   creator_id?: string | null;
 };
@@ -372,6 +374,9 @@ export default function SearchEvents({
         ) : (
           filteredEvents.map((event) => {
             const creatorName = getCreatorName(event);
+            const creatorIsPro =
+              event.creator_account_type === "circolo" &&
+              event.creator_account_plan === "pro";
             const availabilityBadge = getAvailabilityBadge(
               event.remaining_spots
             );
@@ -437,6 +442,9 @@ export default function SearchEvents({
                         <span className="rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
                           Club
                         </span>
+
+                        
+                        {creatorIsPro ? <ClubProBadge compact /> : null}
 
                         {event.creator_id ? (
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">

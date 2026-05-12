@@ -9,6 +9,7 @@ import ShareEventButton from "./ShareEventButton";
 import BrandHeader from "../../../components/BrandHeader";
 import CancelEventButton from "./CancelEventButton";
 import UpdateTotalSpotsForm from "./UpdateTotalSpotsForm";
+import ClubProBadge from "../../../components/ClubProBadge";
 import CancelParticipationButton from "./CancelParticipationButton";
 import Link from "next/link";
 import {
@@ -212,7 +213,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const { data: creatorProfile } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, city, bio, avatar_url, account_type, club_name, phone, created_at"
+      "id, display_name, city, bio, avatar_url, account_type, account_plan, club_name, phone, created_at"
     )
     .eq("id", event.creator_id)
     .single();
@@ -249,6 +250,8 @@ export default async function EventPage({ params }: EventPageProps) {
       : "Organizzatore";
   const creatorWhatsAppHref =
     creatorType === "Circolo" ? getWhatsAppHref(creatorProfile?.phone) : null;
+  const creatorIsClubPro =
+    creatorType === "Circolo" && creatorProfile?.account_plan === "pro";
 
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
@@ -463,11 +466,13 @@ export default async function EventPage({ params }: EventPageProps) {
             <p className="font-semibold text-black">{creatorName}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <p className="text-sm text-gray-600">{creatorType}</p>
-
               {creatorType === "Circolo" ? (
-                <span className="rounded-full bg-black px-2 py-0.5 text-xs font-semibold !text-white">
-                  Club
-                </span>
+                <>
+                  <span className="rounded-full bg-black px-2 py-0.5 text-xs font-semibold !text-white">
+                    Club
+                  </span>
+                  {creatorIsClubPro ? <ClubProBadge compact /> : null}
+                </>
               ) : null}
             </div>
 
