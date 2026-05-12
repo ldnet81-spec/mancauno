@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import AppHeaderServer from "../components/AppHeaderServer";
+import { createAdminClient } from "../lib/supabase/admin";
 import { createPublicClient } from "../lib/supabase/public";
 import SearchEvents from "./SearchEvents";
 
@@ -111,6 +112,36 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
     .limit(20);
+
+  const clubCreatorIds = Array.from(
+    new Set(
+      (events ?? [])
+        .filter((event) => event.creator_account_type === "circolo")
+        .map((event) => event.creator_id)
+        .filter(Boolean)
+    )
+  );
+
+  const adminSupabase = createAdminClient();
+  const { data: proClubProfiles } =
+    adminSupabase && clubCreatorIds.length
+      ? await adminSupabase
+          .from("profiles")
+          .select("id, account_plan")
+          .in("id", clubCreatorIds)
+          .eq("account_plan", "pro")
+      : { data: [] };
+
+  const proClubIds = new Set(
+    (proClubProfiles ?? []).map((profile) => profile.id)
+  );
+
+  const eventsWithClubPlan = (events ?? []).map((event) => ({
+    ...event,
+    creator_account_plan:
+      event.creator_account_plan ??
+      (event.creator_id && proClubIds.has(event.creator_id) ? "pro" : null),
+  }));
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
   const jsonLd = {
@@ -309,7 +340,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </p>
         </div>
 
-        <SearchEvents events={events ?? []} initialQuery={initialQuery} />
+        <SearchEvents events={eventsWithClubPlan} initialQuery={initialQuery} />
       </section>
     </main>
   );
