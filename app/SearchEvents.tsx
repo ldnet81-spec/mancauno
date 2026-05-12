@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatDateItaly, formatTimeItaly } from "../lib/date-time";
 import ClubProBadge from "../components/ClubProBadge";
+import PrivatePlusBadge from "../components/PrivatePlusBadge";
 
 type EventItem = {
   id: string;
@@ -377,6 +378,9 @@ export default function SearchEvents({
             const creatorIsPro =
               event.creator_account_type === "circolo" &&
               event.creator_account_plan === "pro";
+            const creatorIsPrivatePlus =
+              event.creator_account_type !== "circolo" &&
+              event.creator_account_plan === "pro";
             const availabilityBadge = getAvailabilityBadge(
               event.remaining_spots
             );
@@ -436,6 +440,12 @@ export default function SearchEvents({
                         </p>
                       </div>
                     </div>
+
+                    {creatorIsPrivatePlus ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <PrivatePlusBadge compact />
+                      </div>
+                    ) : null}
 
                     {event.creator_account_type === "circolo" ? (
                       <div className="mt-3 flex flex-wrap gap-2">

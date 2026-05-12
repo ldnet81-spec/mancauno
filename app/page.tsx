@@ -113,34 +113,27 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .order("starts_at", { ascending: true })
     .limit(20);
 
-  const clubCreatorIds = Array.from(
-    new Set(
-      (events ?? [])
-        .filter((event) => event.creator_account_type === "circolo")
-        .map((event) => event.creator_id)
-        .filter(Boolean)
-    )
+  const creatorIds = Array.from(
+    new Set((events ?? []).map((event) => event.creator_id).filter(Boolean))
   );
 
   const adminSupabase = createAdminClient();
-  const { data: proClubProfiles } =
-    adminSupabase && clubCreatorIds.length
+  const { data: proProfiles } =
+    adminSupabase && creatorIds.length
       ? await adminSupabase
           .from("profiles")
           .select("id, account_plan")
-          .in("id", clubCreatorIds)
+          .in("id", creatorIds)
           .eq("account_plan", "pro")
       : { data: [] };
 
-  const proClubIds = new Set(
-    (proClubProfiles ?? []).map((profile) => profile.id)
-  );
+  const proCreatorIds = new Set((proProfiles ?? []).map((profile) => profile.id));
 
-  const eventsWithClubPlan = (events ?? []).map((event) => ({
+  const eventsWithCreatorPlan = (events ?? []).map((event) => ({
     ...event,
     creator_account_plan:
       event.creator_account_plan ??
-      (event.creator_id && proClubIds.has(event.creator_id) ? "pro" : null),
+      (event.creator_id && proCreatorIds.has(event.creator_id) ? "pro" : null),
   }));
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
@@ -340,7 +333,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </p>
         </div>
 
-        <SearchEvents events={eventsWithClubPlan} initialQuery={initialQuery} />
+        <SearchEvents events={eventsWithCreatorPlan} initialQuery={initialQuery} />
       </section>
     </main>
   );

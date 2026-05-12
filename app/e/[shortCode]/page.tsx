@@ -10,6 +10,7 @@ import BrandHeader from "../../../components/BrandHeader";
 import CancelEventButton from "./CancelEventButton";
 import UpdateTotalSpotsForm from "./UpdateTotalSpotsForm";
 import ClubProBadge from "../../../components/ClubProBadge";
+import PrivatePlusBadge from "../../../components/PrivatePlusBadge";
 import CancelParticipationButton from "./CancelParticipationButton";
 import Link from "next/link";
 import {
@@ -252,6 +253,8 @@ export default async function EventPage({ params }: EventPageProps) {
     creatorType === "Circolo" ? getWhatsAppHref(creatorProfile?.phone) : null;
   const creatorIsClubPro =
     creatorType === "Circolo" && creatorProfile?.account_plan === "pro";
+  const creatorIsPrivatePlus =
+    creatorType !== "Circolo" && creatorProfile?.account_plan === "pro";
 
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
@@ -474,6 +477,8 @@ export default async function EventPage({ params }: EventPageProps) {
                   {creatorIsClubPro ? <ClubProBadge compact /> : null}
                 </>
               ) : null}
+
+              {creatorIsPrivatePlus ? <PrivatePlusBadge compact /> : null}
             </div>
 
             {creatorProfile?.city ? (

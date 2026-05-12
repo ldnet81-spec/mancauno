@@ -7,6 +7,7 @@ import LogoutButton from "./LogoutButton";
 import AppHeaderServer from "../../components/AppHeaderServer";
 import GdprRightsForm from "./GdprRightsForm";
 import ClubProBadge from "../../components/ClubProBadge";
+import PrivatePlusBadge from "../../components/PrivatePlusBadge";
 
 type ProfiloPageProps = {
   searchParams: Promise<{
@@ -106,6 +107,10 @@ const participationCount =
                   Club
                 </span>
                 {profile.account_plan === "pro" ? <ClubProBadge compact /> : null}
+              </div>
+            ) : profile.account_plan === "pro" ? (
+              <div className="mb-2">
+                <PrivatePlusBadge compact />
               </div>
             ) : null}
 
