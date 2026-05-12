@@ -16,7 +16,7 @@ type AppHeaderProps = {
   initialUserState?: UserState;
 };
 
-type IconName = "home" | "calendar" | "plus" | "bell" | "user";
+type IconName = "home" | "calendar" | "plus" | "bell" | "user" | "admin";
 
 function isActive(pathname: string, href: string) {
   if (href === "/") {
@@ -27,6 +27,16 @@ function isActive(pathname: string, href: string) {
 }
 
 function Icon({ name }: { name: IconName }) {
+  if (name === "admin") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden="true">
+        <path d="M12 3 19 6v5c0 4.6-2.8 8.7-7 10-4.2-1.3-7-5.4-7-10V6l7-3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M9.5 12h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M12 9.5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
   if (name === "calendar") {
     return (
       <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden="true">
@@ -182,6 +192,17 @@ export default function AppHeader({ initialUserState }: AppHeaderProps) {
                 </span>
               ) : null}
             </Link>
+
+            {userState.isAdmin ? (
+              <Link
+                href="/admin"
+                aria-label="Admin"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-3 font-black text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition hover:bg-blue-700 sm:h-16 sm:px-5"
+              >
+                <Icon name="admin" />
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
+            ) : null}
 
             <Link
               href={createHref}
