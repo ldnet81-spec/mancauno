@@ -110,24 +110,39 @@ export default function SubscriptionPlans({
               </ul>
 
               {isLoggedIn ? (
-                <form
-                  action="/api/billing/checkout"
-                  method="POST"
-                  className="mt-6"
-                >
-                  <input type="hidden" name="plan" value={plan.id} />
-                  <button
-                    type="submit"
-                    disabled={isCurrent || !isCompatible}
-                    className="w-full rounded-2xl bg-slate-950 px-5 py-3 font-black !text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                isCurrent ? (
+                  <div className="mt-6 space-y-3">
+                    <div className="rounded-2xl bg-green-50 px-4 py-3 text-center text-sm font-black text-green-800">
+                      Piano attivo
+                    </div>
+
+                    <form action="/api/billing/portal" method="POST">
+                      <button
+                        type="submit"
+                        className="w-full rounded-2xl border border-red-200 bg-white px-5 py-3 font-black text-red-700 transition hover:bg-red-50"
+                      >
+                        Gestisci o annulla abbonamento
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <form
+                    action="/api/billing/checkout"
+                    method="POST"
+                    className="mt-6"
                   >
-                    {isCurrent
-                      ? "Piano attivo"
-                      : !isCompatible
+                    <input type="hidden" name="plan" value={plan.id} />
+                    <button
+                      type="submit"
+                      disabled={!isCompatible}
+                      className="w-full rounded-2xl bg-slate-950 px-5 py-3 font-black !text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      {!isCompatible
                         ? "Non disponibile per questo profilo"
                         : plan.cta}
-                  </button>
-                </form>
+                    </button>
+                  </form>
+                )
               ) : (
                 <a
                   href="/auth/quick-signup?next=/abbonamenti"

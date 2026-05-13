@@ -60,6 +60,27 @@ export default async function AbbonamentiPage({
         </div>
       ) : null}
 
+
+      {params.error === "abbonamento-non-trovato" ? (
+        <div className="mb-5 rounded-2xl bg-orange-50 p-4 text-sm font-semibold text-orange-800">
+          Non ho trovato un abbonamento Stripe attivo per questo profilo. Se il
+          pagamento e recente, attendi qualche minuto o controlla la sessione
+          Stripe.
+        </div>
+      ) : null}
+
+      {params.error === "portale-non-configurato" ? (
+        <div className="mb-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-700">
+          Il portale clienti Stripe non e ancora configurato. Attivalo da Stripe
+          per permettere agli utenti di annullare l&apos;abbonamento.
+        </div>
+      ) : null}
+
+      {params.error === "pagamenti-non-configurati" ? (
+        <div className="mb-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-700">
+          Pagamenti Stripe non configurati sul server.
+        </div>
+      ) : null}
       {params.billing === "cancelled" ? (
         <div className="mb-5 rounded-2xl bg-slate-100 p-4 text-sm font-semibold text-slate-700">
           Checkout annullato. Puoi riprendere quando vuoi.
