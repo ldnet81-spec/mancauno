@@ -3,6 +3,11 @@ import PrivatePlusBadge from "./PrivatePlusBadge";
 
 type SubscriptionPlansProps = {
   accountType?: string | null;
+  billingStatus?: {
+    cancelAtPeriodEnd: boolean;
+    currentPeriodEnd: string | null;
+    status: string | null;
+  } | null;
   currentPlan?: string | null;
   isLoggedIn?: boolean;
 };
@@ -43,8 +48,21 @@ const planCards = [
   },
 ];
 
+function formatSubscriptionEndDate(value: string | null) {
+  if (!value) {
+    return "la fine del periodo gia pagato";
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export default function SubscriptionPlans({
   accountType,
+  billingStatus,
   currentPlan,
   isLoggedIn = false,
 }: SubscriptionPlansProps) {
@@ -67,6 +85,11 @@ export default function SubscriptionPlans({
           const isCurrent =
             currentPlan === "pro" && accountType === plan.accountType;
           const isCompatible = !accountType || accountType === plan.accountType;
+          const isCancellationScheduled =
+            isCurrent && billingStatus?.cancelAtPeriodEnd;
+          const subscriptionEndDate = formatSubscriptionEndDate(
+            billingStatus?.currentPeriodEnd ?? null
+          );
 
           return (
             <article
@@ -112,16 +135,36 @@ export default function SubscriptionPlans({
               {isLoggedIn ? (
                 isCurrent ? (
                   <div className="mt-6 space-y-3">
-                    <div className="rounded-2xl bg-green-50 px-4 py-3 text-center text-sm font-black text-green-800">
-                      Piano attivo
+                    <div
+                      className={`rounded-2xl px-4 py-3 text-center text-sm font-black ${
+                        isCancellationScheduled
+                          ? "bg-orange-50 text-orange-800"
+                          : "bg-green-50 text-green-800"
+                      }`}
+                    >
+                      {isCancellationScheduled
+                        ? `Abbonamento annullato. Attivo fino al ${subscriptionEndDate}.`
+                        : "Piano attivo"}
                     </div>
+
+                    {isCancellationScheduled ? (
+                      <p className="rounded-2xl bg-white/80 px-4 py-3 text-center text-sm font-semibold text-slate-600">
+                        Puoi riattivarlo o modificarlo dal portale Stripe.
+                      </p>
+                    ) : null}
 
                     <form action="/api/billing/portal" method="POST">
                       <button
                         type="submit"
-                        className="w-full rounded-2xl border border-red-200 bg-white px-5 py-3 font-black text-red-700 transition hover:bg-red-50"
+                        className={`w-full rounded-2xl border bg-white px-5 py-3 font-black transition ${
+                          isCancellationScheduled
+                            ? "border-slate-200 text-slate-800 hover:bg-slate-50"
+                            : "border-red-200 text-red-700 hover:bg-red-50"
+                        }`}
                       >
-                        Gestisci o annulla abbonamento
+                        {isCancellationScheduled
+                          ? "Gestisci abbonamento"
+                          : "Gestisci o annulla abbonamento"}
                       </button>
                     </form>
                   </div>

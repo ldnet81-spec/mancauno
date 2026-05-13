@@ -4,6 +4,7 @@ import AppHeaderServer from "../../../components/AppHeaderServer";
 import BrandHeader from "../../../components/BrandHeader";
 import LogoutButton from "../../profilo/LogoutButton";
 import { createClient } from "../../../lib/supabase/server";
+import { findStripeSubscriptionForUser } from "../../../lib/stripe-subscriptions";
 
 export default async function GestioneAbbonamentoPage() {
   const supabase = await createClient();
@@ -27,6 +28,19 @@ export default async function GestioneAbbonamentoPage() {
       ? profile.club_name
       : profile?.display_name || user.email || "Il tuo profilo";
   const isPro = profile?.account_plan === "pro";
+  const billingStatus = isPro
+    ? await findStripeSubscriptionForUser(user.id)
+    : null;
+  const isCancellationScheduled = Boolean(
+    billingStatus?.cancelAtPeriodEnd && billingStatus.currentPeriodEnd
+  );
+  const endDate = billingStatus?.currentPeriodEnd
+    ? new Intl.DateTimeFormat("it-IT", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(billingStatus.currentPeriodEnd))
+    : null;
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
@@ -75,12 +89,18 @@ export default async function GestioneAbbonamentoPage() {
           </div>
         </div>
 
-        <p className="mt-4 rounded-2xl bg-orange-50 p-4 text-sm leading-6 text-orange-800">
-          Se hai annullato l&apos;abbonamento ma vedi ancora il piano Pro, puo
-          essere normale: Stripe puo mantenerlo attivo fino alla fine del
-          periodo gia pagato. Se invece stai testando con account diversi, esci
-          e rientra con l&apos;account corretto.
-        </p>
+        {isCancellationScheduled ? (
+          <p className="mt-4 rounded-2xl bg-orange-50 p-4 text-sm leading-6 text-orange-800">
+            Abbonamento annullato. Il piano resta attivo fino al {endDate}.
+          </p>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-orange-50 p-4 text-sm leading-6 text-orange-800">
+            Se hai annullato l&apos;abbonamento ma vedi ancora il piano Pro, puo
+            essere normale: Stripe puo mantenerlo attivo fino alla fine del
+            periodo gia pagato. Se invece stai testando con account diversi,
+            esci e rientra con l&apos;account corretto.
+          </p>
+        )}
 
         <div className="mt-6 grid gap-3">
           <Link

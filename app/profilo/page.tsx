@@ -10,6 +10,7 @@ import ClubProBadge from "../../components/ClubProBadge";
 import PrivatePlusBadge from "../../components/PrivatePlusBadge";
 import SubscriptionPlans from "../../components/SubscriptionPlans";
 import AccountSettingsForm from "./AccountSettingsForm";
+import { findStripeSubscriptionForUser } from "../../lib/stripe-subscriptions";
 
 type ProfiloPageProps = {
   searchParams: Promise<{
@@ -65,6 +66,11 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .is("read_at", null);
+
+  const billingStatus =
+    profile.account_plan === "pro"
+      ? await findStripeSubscriptionForUser(user.id)
+      : null;
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-6 py-8">
@@ -187,6 +193,7 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
       <section className="mb-6">
         <SubscriptionPlans
           accountType={profile.account_type}
+          billingStatus={billingStatus}
           currentPlan={profile.account_plan}
           isLoggedIn
         />

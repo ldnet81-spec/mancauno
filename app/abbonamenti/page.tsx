@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import AppHeaderServer from "../../components/AppHeaderServer";
 import SubscriptionPlans from "../../components/SubscriptionPlans";
 import { createClient } from "../../lib/supabase/server";
+import { findStripeSubscriptionForUser } from "../../lib/stripe-subscriptions";
 
 export const metadata: Metadata = {
   title: "Abbonamenti",
@@ -34,6 +35,11 @@ export default async function AbbonamentiPage({
         .eq("id", user.id)
         .single()
     : { data: null };
+
+  const billingStatus =
+    user && profile?.account_plan === "pro"
+      ? await findStripeSubscriptionForUser(user.id)
+      : null;
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 pb-28 pt-4 text-slate-950 sm:px-6">
@@ -95,6 +101,7 @@ export default async function AbbonamentiPage({
 
       <SubscriptionPlans
         accountType={profile?.account_type}
+        billingStatus={billingStatus}
         currentPlan={profile?.account_plan}
         isLoggedIn={Boolean(user)}
       />

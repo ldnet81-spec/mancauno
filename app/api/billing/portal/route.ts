@@ -1,24 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server";
 import { getSiteUrl } from "../../../../lib/stripe";
-
-type StripeSubscription = {
-  customer?: string;
-  id: string;
-  status?: string;
-};
-
-const manageableStatuses = new Set([
-  "active",
-  "trialing",
-  "past_due",
-  "unpaid",
-  "incomplete",
-]);
-
-function escapeStripeSearchValue(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-}
+import { findStripeSubscriptionForUser } from "../../../../lib/stripe-subscriptions";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -39,35 +22,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const searchParams = new URLSearchParams();
-  searchParams.set("limit", "10");
-  searchParams.set(
-    "query",
-    `metadata['user_id']:'${escapeStripeSearchValue(user.id)}'`
-  );
-
-  const searchResponse = await fetch(
-    `https://api.stripe.com/v1/subscriptions/search?${searchParams.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${stripeSecretKey}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!searchResponse.ok) {
-    return NextResponse.redirect(
-      new URL("/abbonamenti?error=abbonamento-non-trovato", request.url)
-    );
-  }
-
-  const searchData = (await searchResponse.json()) as {
-    data?: StripeSubscription[];
-  };
-  const subscription = searchData.data?.find((item) =>
-    manageableStatuses.has(item.status || "")
-  );
+  const subscription = await findStripeSubscriptionForUser(user.id);
 
   if (!subscription?.customer) {
     return NextResponse.redirect(
