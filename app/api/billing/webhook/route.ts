@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "../../../../lib/supabase/admin";
-import { isBillingPlan } from "../../../../lib/stripe";
+import { billingPlans, isBillingPlan } from "../../../../lib/stripe";
 
 export const runtime = "nodejs";
 
@@ -63,7 +63,11 @@ function verifyStripeSignature(
   });
 }
 
-async function setAccountPlan(userId: string | undefined, plan: "free" | "pro") {
+async function setAccountPlan(
+  userId: string | undefined,
+  plan: "free" | "pro",
+  billingPlan?: string
+) {
   if (!userId) {
     return;
   }
@@ -72,6 +76,22 @@ async function setAccountPlan(userId: string | undefined, plan: "free" | "pro") 
 
   if (!adminSupabase) {
     throw new Error("Supabase admin non configurato.");
+  }
+
+  if (plan === "pro") {
+    if (!billingPlan || !isBillingPlan(billingPlan)) {
+      return;
+    }
+
+    const { data: profile } = await adminSupabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", userId)
+      .single();
+
+    if (profile?.account_type !== billingPlans[billingPlan].accountType) {
+      return;
+    }
   }
 
   const { error } = await adminSupabase
@@ -107,7 +127,7 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     if (isBillingPlan(billingPlan || "")) {
-      await setAccountPlan(userId, "pro");
+      await setAccountPlan(userId, "pro", billingPlan);
     }
 
     return NextResponse.json({ received: true });
@@ -117,7 +137,8 @@ export async function POST(request: Request) {
     const activeStatuses = ["active", "trialing"];
     await setAccountPlan(
       userId,
-      activeStatuses.includes(object?.status || "") ? "pro" : "free"
+      activeStatuses.includes(object?.status || "") ? "pro" : "free",
+      billingPlan
     );
 
     return NextResponse.json({ received: true });

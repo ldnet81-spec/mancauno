@@ -71,13 +71,19 @@ export async function POST(request: Request) {
   params.set("mode", "subscription");
   params.set("line_items[0][price]", priceId);
   params.set("line_items[0][quantity]", "1");
-  params.set("success_url", `${siteUrl}/profilo?billing=success`);
+  params.set(
+    "success_url",
+    `${siteUrl}/abbonamenti/conferma?session_id={CHECKOUT_SESSION_ID}`
+  );
   params.set("cancel_url", `${siteUrl}/abbonamenti?billing=cancelled`);
   params.set("client_reference_id", user.id);
   params.set("customer_email", user.email || "");
   params.set("metadata[user_id]", user.id);
+  params.set("metadata[user_email]", user.email || "");
+  params.set("metadata[account_type]", profile.account_type);
   params.set("metadata[billing_plan]", planValue);
   params.set("subscription_data[metadata][user_id]", user.id);
+  params.set("subscription_data[metadata][account_type]", profile.account_type);
   params.set("subscription_data[metadata][billing_plan]", planValue);
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
