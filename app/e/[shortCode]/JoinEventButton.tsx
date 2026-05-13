@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "../../../lib/supabase/client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -10,6 +11,26 @@ type JoinEventButtonProps = {
   isUnavailable: boolean;
   initialStatus?: string | null;
 };
+
+function CreateEventCta() {
+  return (
+    <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-center">
+      <p className="font-black text-slate-950">
+        Vuoi creare anche tu un evento?
+      </p>
+      <p className="mt-1 text-sm leading-5 text-slate-600">
+        Ti bastano 30 secondi per creare un link e condividerlo con i tuoi
+        amici.
+      </p>
+      <Link
+        href="/eventi/nuovo"
+        className="mt-3 block rounded-xl bg-blue-600 px-4 py-3 font-black !text-white"
+      >
+        Crea il tuo evento
+      </Link>
+    </div>
+  );
+}
 
 export default function JoinEventButton({
   shortCode,
@@ -86,34 +107,43 @@ export default function JoinEventButton({
 
   if (status === "approved") {
     return (
-      <button
-        disabled
-        className="w-full rounded-xl bg-green-600 px-4 py-3 font-medium text-white"
-      >
-        Partecipi
-      </button>
+      <div>
+        <button
+          disabled
+          className="w-full rounded-xl bg-green-600 px-4 py-3 font-medium text-white"
+        >
+          Partecipi
+        </button>
+        <CreateEventCta />
+      </div>
     );
   }
 
   if (status === "pending") {
     return (
-      <button
-        disabled
-        className="w-full rounded-xl bg-gray-900 px-4 py-3 font-medium text-white"
-      >
-        Richiesta inviata
-      </button>
+      <div>
+        <button
+          disabled
+          className="w-full rounded-xl bg-gray-900 px-4 py-3 font-medium text-white"
+        >
+          Richiesta inviata
+        </button>
+        <CreateEventCta />
+      </div>
     );
   }
 
   if (status === "waitlisted") {
     return (
-      <button
-        disabled
-        className="w-full rounded-xl bg-orange-500 px-4 py-3 font-medium text-white"
-      >
-        Sei in coda
-      </button>
+      <div>
+        <button
+          disabled
+          className="w-full rounded-xl bg-orange-500 px-4 py-3 font-medium text-white"
+        >
+          Sei in coda
+        </button>
+        <CreateEventCta />
+      </div>
     );
   }
 

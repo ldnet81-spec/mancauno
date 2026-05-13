@@ -14,15 +14,15 @@ const planCards = [
     badge: <PrivatePlusBadge />,
     cta: "Attiva Privato Plus",
     description:
-      "Per chi organizza spesso partite, allenamenti o uscite con amici e nuovi partecipanti.",
+      "Per privati che organizzano spesso partite e vogliono piu liberta nel creare link evento.",
     highlights: [
+      "Partecipa agli eventi",
+      "Condividi il link evento",
       "Eventi mensili illimitati",
       "Badge Privato Plus premium",
-      "Più fiducia nelle richieste",
-      "Ideale per gruppi sportivi informali",
     ],
     name: "Privato Plus",
-    price: "9,90 €",
+    price: "9,90 EUR",
   },
   {
     id: "club_pro",
@@ -30,15 +30,16 @@ const planCards = [
     badge: <ClubProBadge />,
     cta: "Attiva Club Pro",
     description:
-      "Pensato per circoli, campi e organizzatori che vogliono ridurre posti vuoti e gruppi incompleti.",
+      "Riempi i campi vuoti e trova nuovi giocatori nella tua zona.",
     highlights: [
       "Eventi mensili illimitati",
       "Badge Club Pro verificato",
-      "Pagina club più autorevole",
-      "Visibilità negli eventi organizzati",
+      "Maggiore visibilita negli eventi organizzati",
+      "Gestione richieste e posti disponibili",
+      "Possibilita futura di pagamenti online",
     ],
     name: "Club Pro",
-    price: "19,90 €",
+    price: "19,90 EUR",
   },
 ];
 
@@ -51,15 +52,13 @@ export default function SubscriptionPlans({
     <section className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-7">
       <div className="max-w-2xl">
         <p className="text-sm font-black uppercase tracking-[0.06em] text-orange-600">
-          Abbonamenti mensili
+          Piani per chi organizza spesso
         </p>
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-          Organizza senza limiti
+          Prima crea e condividi. Poi scala.
         </h2>
         <p className="mt-3 text-slate-600">
-          La registrazione resta gratuita. Con un piano Plus o Pro sblocchi la
-          creazione illimitata di eventi mensili e un badge premium visibile
-          nelle anteprime.
+          La registrazione resta gratuita. I piani servono quando vuoi creare piu eventi ogni mese, dare piu fiducia ai partecipanti e, per i club, riempire slot vuoti con un link facile da condividere.
         </p>
       </div>
 

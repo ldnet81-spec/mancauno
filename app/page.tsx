@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Eventi sportivi vicino a te",
+  title: "Manca uno per giocare? Crea il link e condividilo",
   description:
-    "Trova persone per completare partite di calcetto, padel, tennis, basket, running e altri eventi sportivi. Crea un evento, condividi il link e gestisci le richieste.",
+    "Crea un evento sportivo gratis, condividi il link su WhatsApp e trova chi completa la partita.",
   alternates: {
     canonical: "/",
   },
@@ -28,34 +28,34 @@ type HomePageProps = {
 const trustItems = [
   {
     icon: "people",
-    title: "Comunità attiva",
-    text: "Migliaia di sportivi",
+    title: "Link pronto",
+    text: "Lo mandi nel gruppo WhatsApp",
     color: "text-blue-600",
     bg: "bg-blue-50",
   },
   {
     icon: "shield",
-    title: "Affidabile e sicuro",
+    title: "Richieste ordinate",
     text: "Richieste sotto controllo",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
   },
   {
     icon: "pin",
-    title: "Vicino a te",
-    text: "Eventi nella tua zona",
+    title: "Posti chiari",
+    text: "Si vede subito chi manca",
     color: "text-orange-600",
     bg: "bg-orange-50",
   },
 ];
 
 const sports = [
-  { name: "Calcetto", emoji: "⚽", events: "2.341 eventi", active: true },
-  { name: "Padel", emoji: "🎾", events: "1.587 eventi" },
-  { name: "Tennis", emoji: "🥎", events: "987 eventi" },
-  { name: "Running", emoji: "👟", events: "642 eventi" },
-  { name: "Pallavolo", emoji: "🏐", events: "532 eventi" },
-  { name: "Basket", emoji: "🏀", events: "476 eventi" },
+  { name: "Calcetto", emoji: "⚽", active: true },
+  { name: "Padel", emoji: "🎾" },
+  { name: "Tennis", emoji: "🎾" },
+  { name: "Basket", emoji: "🏀" },
+  { name: "Running", emoji: "👟" },
+  { name: "Altro evento", emoji: "➕" },
 ];
 
 function MiniIcon({ type }: { type: string }) {
@@ -111,6 +111,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .select("*")
     .eq("status", "active")
     .gte("starts_at", new Date().toISOString())
+    .gt("remaining_spots", 0)
     .order("starts_at", { ascending: true })
     .limit(20);
 
@@ -144,7 +145,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     name: "mancauno.it",
     url: siteUrl,
     description:
-      "Web app italiana per creare eventi sportivi, trovare giocatori e aiutare i circoli a completare partite e attivita.",
+      "Web app italiana per creare un link evento sportivo, condividerlo su WhatsApp e trovare chi completa la partita.",
     inLanguage: "it-IT",
     potentialAction: {
       "@type": "SearchAction",
@@ -168,40 +169,43 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="relative z-10">
             <p className="text-sm font-extrabold uppercase tracking-[0.06em] text-orange-600 sm:text-base">
-              Sport, gruppi e circoli più organizzati
+              Crea il link, mandalo su WhatsApp
             </p>
 
             <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.08] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Trova chi manca per completare il tuo evento sportivo
+              Manca uno per giocare?
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl sm:leading-9">
-              mancauno.it ti aiuta a riempire l&apos;ultimo posto per una partita,
-              un allenamento o un&apos;uscita sportiva. Crea l&apos;evento,
-              condividi il link e raccogli richieste da persone interessate nella
-              tua zona.
+              Crea un evento sportivo, condividi il link nel gruppo WhatsApp e
+              trova chi completa la partita.
             </p>
 
             <div className="mt-9 grid gap-4 sm:grid-cols-2">
-              <a
-                href="#eventi"
+              <Link
+                href="/eventi/nuovo"
                 className="inline-flex min-h-16 items-center justify-center gap-4 rounded-2xl bg-blue-600 px-6 text-lg font-bold !text-white shadow-[0_18px_45px_rgba(37,99,235,0.28)] transition hover:bg-blue-700"
               >
-                <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" aria-hidden="true">
+                <span className="text-4xl font-light leading-none">+</span>
+                Crea evento gratis
+              </Link>
+
+              <a
+                href="#eventi"
+                className="inline-flex min-h-16 items-center justify-center gap-4 rounded-2xl border border-orange-500 bg-white/80 px-6 text-lg font-bold text-slate-950 shadow-sm transition hover:bg-orange-50"
+              >
+                <svg viewBox="0 0 24 24" className="h-8 w-8 text-orange-600" fill="none" aria-hidden="true">
                   <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
                   <path d="m16 16 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                Cerca eventi
+                Vedi eventi vicino a te
               </a>
-
-              <Link
-                href="/eventi/nuovo"
-                className="inline-flex min-h-16 items-center justify-center gap-4 rounded-2xl border border-orange-500 bg-white/80 px-6 text-lg font-bold text-slate-950 shadow-sm transition hover:bg-orange-50"
-              >
-                <span className="text-4xl font-light leading-none text-orange-600">+</span>
-                Crea un evento
-              </Link>
             </div>
+
+            <p className="mt-4 text-sm font-semibold text-slate-500 sm:text-base">
+              Ideale per calcetto, padel, tennis, basket, running e uscite
+              sportive.
+            </p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[520px] lg:mr-0">
@@ -290,10 +294,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <section className="mt-10">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 className="text-2xl font-black tracking-tight text-slate-950">
-            Scegli il tuo sport <span className="text-orange-500">⚡</span>
+            Sport piu richiesti <span className="text-orange-500">⚡</span>
           </h2>
           <a href="#eventi" className="hidden items-center gap-2 text-sm font-extrabold text-blue-600 sm:inline-flex">
-            Vedi tutti gli sport
+            Vedi eventi aperti
             <span aria-hidden="true">›</span>
           </a>
         </div>
@@ -311,7 +315,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 {sport.emoji}
               </div>
               <p className="mt-3 font-black text-slate-950">{sport.name}</p>
-              <p className="mt-1 text-sm font-medium text-blue-600">{sport.events}</p>
             </a>
           ))}
         </div>
@@ -330,11 +333,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <section id="eventi" className="mt-12 scroll-mt-8 rounded-[1.75rem] border border-slate-200 bg-white/78 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
         <div className="mb-6">
           <h2 className="text-2xl font-black tracking-tight text-slate-950">
-            Eventi disponibili
+            Eventi con posti disponibili
           </h2>
 
           <p className="mt-2 text-slate-600">
-            Filtra gli eventi aperti e scegli dove unirti o cosa organizzare.
+            Trova un evento con posti disponibili. Se non c'e nulla nella tua zona, crea il primo link e condividilo con gli amici.
           </p>
         </div>
 

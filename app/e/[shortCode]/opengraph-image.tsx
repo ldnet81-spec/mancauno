@@ -46,7 +46,7 @@ export default async function Image({ params }: OgImageProps) {
   const { data: event } = await supabase
     .from("event_with_counts")
     .select(
-      "title, sport_emoji, starts_at, city, location_name, remaining_spots, waitlisted_count, status"
+      "title, sport, sport_emoji, starts_at, city, location_name, remaining_spots, waitlisted_count, status"
     )
     .eq("short_code", shortCode)
     .single();
@@ -127,7 +127,10 @@ export default async function Image({ params }: OgImageProps) {
   const isUnavailable = event.status !== "active";
   const isFull = remainingSpots <= 0;
 
-  const title = truncateText(event.title, 54);
+  const title = truncateText(
+    `Manca uno per ${event.sport || event.title || "giocare"}`,
+    54
+  );
   const locationText = truncateText(
     [event.location_name, event.city].filter(Boolean).join(", "),
     46
@@ -196,7 +199,7 @@ export default async function Image({ params }: OgImageProps) {
                 fontWeight: 600,
               }}
             >
-              Link evento condiviso
+              Manca uno?
             </div>
           </div>
 
@@ -384,7 +387,7 @@ export default async function Image({ params }: OgImageProps) {
               letterSpacing: "-0.3px",
             }}
           >
-            Crea il gruppo. Condividi il link. Trova chi manca.
+            Crea il link. Condividilo su WhatsApp. Trova chi manca.
           </div>
 
           <div

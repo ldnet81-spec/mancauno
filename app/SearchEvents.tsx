@@ -46,23 +46,6 @@ const sportFilters = [
   "Altro evento",
 ];
 
-function formatEventDate(date: string) {
-  const startsAt = new Date(date);
-
-  const day = new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(startsAt);
-
-  const time = new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAt);
-
-  return `${day} · ${time}`;
-}
-
 function isSameDay(firstDate: Date, secondDate: Date) {
   return (
     firstDate.getFullYear() === secondDate.getFullYear() &&
@@ -256,7 +239,7 @@ export default function SearchEvents({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cerca per città o attività"
+            placeholder="Cerca per citta o attivita"
             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
           />
         </label>
@@ -344,10 +327,10 @@ export default function SearchEvents({
       <section className="space-y-3">
         {!filteredEvents.length ? (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 text-black">
-            <h2 className="text-xl font-semibold">Nessun evento trovato</h2>
+            <h2 className="text-xl font-semibold">Nessun evento disponibile al momento.</h2>
 
             <p className="mt-2 text-gray-600">
-              Prova con un’altra città o attività, oppure crea un nuovo evento.
+              Crea il primo evento nella tua zona e condividilo con i tuoi amici.
             </p>
 
             {cityOptions.length ? (
@@ -369,7 +352,7 @@ export default function SearchEvents({
               href="/eventi/nuovo"
               className="mt-5 block rounded-xl bg-black px-4 py-3 text-center font-medium !text-white"
             >
-              Crea evento
+              Crea evento gratis
             </Link>
           </div>
         ) : (

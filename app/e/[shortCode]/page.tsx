@@ -126,7 +126,7 @@ export async function generateMetadata({
 
   const { data: event } = await supabase
     .from("event_with_counts")
-    .select("title, city, starts_at, remaining_spots, waitlisted_count, status")
+    .select("title, sport, city, starts_at, remaining_spots, waitlisted_count, status")
     .eq("short_code", shortCode)
     .single();
 
@@ -134,8 +134,8 @@ export async function generateMetadata({
 
   if (!event) {
     return {
-      title: "Evento non trovato • mancauno.it",
-      description: "Questo evento non è disponibile.",
+      title: "Evento non trovato - mancauno.it",
+      description: "Questo evento non e disponibile.",
     };
   }
 
@@ -143,25 +143,29 @@ export async function generateMetadata({
 
   const remainingSpots = event.remaining_spots ?? 0;
   const waitlistedCount = event.waitlisted_count ?? 0;
+  const sportLabel = event.sport || "giocare";
+  const cityLabel = event.city || "la tua zona";
 
-  const title = `${event.title} • mancauno.it`;
+  const title = `Manca uno per ${sportLabel} a ${cityLabel}`;
 
   const description =
     event.status !== "active"
-      ? "Questo evento non è più disponibile."
-      : `${
+      ? "Questo evento non e piu disponibile."
+      : `Unisciti all'evento sportivo su mancauno.it. ${
           remainingSpots <= 0
             ? `Evento completo${
                 waitlistedCount > 0
-                  ? ` • ${waitlistedCount} ${
+                  ? `, ${waitlistedCount} ${
                       waitlistedCount === 1
                         ? "persona in coda"
                         : "persone in coda"
-                }`
+                    }`
                   : ""
-              }`
-            : formatAvailabilityLabel(remainingSpots)
-        } • ${formattedDate} • ${event.city}`;
+              }.`
+            : remainingSpots === 1
+              ? "Manca 1 posto."
+              : `Mancano ${remainingSpots} posti.`
+        } ${cityLabel} - ${formattedDate}`;
 
   const ogImageUrl = `${siteUrl}/e/${shortCode}/opengraph-image`;
 
@@ -441,6 +445,19 @@ export default async function EventPage({ params }: EventPageProps) {
         </section>
       ) : null}
 
+      <div className="mt-5">
+        <ShareEventButton
+          title={event.title}
+          sport={event.sport}
+          sportEmoji={event.sport_emoji}
+          city={event.city}
+          formattedDate={formattedDate}
+          formattedTime={formattedTime}
+          remainingSpots={remainingSpots}
+          url={eventUrl}
+        />
+      </div>
+
       <section className="mt-5 rounded-3xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold">Note</h2>
         <p className="mt-2 whitespace-pre-line text-gray-700">
@@ -654,10 +671,6 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
         </section>
       ) : null}
-
-      <section className="mt-5">
-        <ShareEventButton title={event.title} url={eventUrl} />
-      </section>
 
       <div className="fixed inset-x-0 bottom-0 border-t border-gray-200 bg-white p-4">
         <div className="mx-auto max-w-md">
