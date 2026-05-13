@@ -9,12 +9,17 @@ import GdprRightsForm from "./GdprRightsForm";
 import ClubProBadge from "../../components/ClubProBadge";
 import PrivatePlusBadge from "../../components/PrivatePlusBadge";
 import SubscriptionPlans from "../../components/SubscriptionPlans";
+import AccountSettingsForm from "./AccountSettingsForm";
 
 type ProfiloPageProps = {
   searchParams: Promise<{
     gdpr?: string;
     gdpr_error?: string;
   }>;
+};
+
+type ParticipationForCount = {
+  participation_status: string | null;
 };
 
 export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
@@ -45,13 +50,15 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
     .eq("creator_id", user.id);
 
   const { data: myParticipationsForCount } = await supabase.rpc(
-  "get_my_participations"
-);
+    "get_my_participations"
+  );
 
-const participationCount =
-  myParticipationsForCount?.filter((item: any) =>
-    ["approved", "pending"].includes(item.participation_status)
-  ).length ?? 0;
+  const participationsForCount =
+    (myParticipationsForCount ?? []) as ParticipationForCount[];
+
+  const participationCount = participationsForCount.filter((item) =>
+    ["approved", "pending"].includes(item.participation_status ?? "")
+  ).length;
 
   const { count: unreadNotificationsCount } = await supabase
     .from("notifications")
@@ -218,8 +225,10 @@ const participationCount =
       <section className="rounded-3xl border border-gray-200 p-6">
         <h2 className="text-xl font-semibold">Account</h2>
         <p className="mt-2 text-sm text-gray-600">
-          Esci da questo dispositivo.
+          Modifica email, password o esci da questo dispositivo.
         </p>
+
+        <AccountSettingsForm currentEmail={user.email ?? ""} />
 
         <div className="mt-5">
           <LogoutButton />
@@ -231,7 +240,7 @@ const participationCount =
 
         <p className="mt-2 text-sm text-gray-600">
           Puoi esercitare i diritti previsti dal GDPR o richiedere la
-          cancellazione dell'account direttamente da qui.
+          cancellazione dell&apos;account direttamente da qui.
         </p>
 
         {params.gdpr ? (
