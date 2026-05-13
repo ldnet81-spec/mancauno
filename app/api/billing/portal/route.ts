@@ -78,7 +78,7 @@ export async function POST(request: Request) {
   const siteUrl = getSiteUrl();
   const portalParams = new URLSearchParams();
   portalParams.set("customer", subscription.customer);
-  portalParams.set("return_url", `${siteUrl}/profilo?billing=portal`);
+  portalParams.set("return_url", `${siteUrl}/abbonamenti/gestione`);
 
   const portalResponse = await fetch(
     "https://api.stripe.com/v1/billing_portal/sessions",
