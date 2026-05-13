@@ -4,6 +4,7 @@ import AppHeaderServer from "../../../components/AppHeaderServer";
 import BrandHeader from "../../../components/BrandHeader";
 import ClubProBadge from "../../../components/ClubProBadge";
 import PrivatePlusBadge from "../../../components/PrivatePlusBadge";
+import { createAdminClient } from "../../../lib/supabase/admin";
 import { createClient } from "../../../lib/supabase/server";
 import { billingPlans, isBillingPlan } from "../../../lib/stripe";
 
@@ -69,11 +70,13 @@ export default async function ConfermaPagamentoPage({
     redirect("/auth/quick-signup?next=/abbonamenti/conferma");
   }
 
-  const { data: profile } = await supabase
+  const { data: initialProfile } = await supabase
     .from("profiles")
     .select("id, display_name, account_type, account_plan, club_name")
     .eq("id", user.id)
     .single();
+
+  let profile = initialProfile;
 
   const session = params.session_id
     ? await getCheckoutSession(params.session_id)
@@ -83,6 +86,39 @@ export default async function ConfermaPagamentoPage({
     session?.metadata?.user_id || session?.client_reference_id || null;
   const paidPlan = session?.metadata?.billing_plan || null;
   const isSameUser = !paidUserId || paidUserId === user.id;
+  const isPaid =
+    session?.status === "complete" || session?.payment_status === "paid";
+  const canActivatePlan =
+    isSameUser &&
+    isPaid &&
+    paidPlan &&
+    isBillingPlan(paidPlan) &&
+    profile?.account_type === billingPlans[paidPlan].accountType;
+
+  let activationError = "";
+
+  if (canActivatePlan && profile?.account_plan !== "pro") {
+    const adminSupabase = createAdminClient();
+
+    if (adminSupabase) {
+      const { error } = await adminSupabase
+        .from("profiles")
+        .update({ account_plan: "pro" })
+        .eq("id", user.id);
+
+      if (error) {
+        activationError = error.message;
+      } else if (profile) {
+        profile = {
+          ...profile,
+          account_plan: "pro",
+        };
+      }
+    } else {
+      activationError = "Supabase admin non configurato.";
+    }
+  }
+
   const planName = getPlanName(paidPlan);
   const profileName =
     profile?.account_type === "circolo" && profile.club_name
@@ -146,9 +182,9 @@ export default async function ConfermaPagamentoPage({
 
             {!isActive ? (
               <p className="mt-4 rounded-2xl bg-white/80 p-4 text-sm leading-6 text-orange-800">
-                Stripe ha confermato il pagamento, ma il webhook potrebbe
-                impiegare qualche secondo ad aggiornare il piano. Ricarica la
-                pagina tra poco se non lo vedi ancora attivo.
+                {activationError
+                  ? `Pagamento confermato, ma non sono riuscito ad aggiornare il piano: ${activationError}`
+                  : "Stripe ha confermato il pagamento, ma il webhook potrebbe impiegare qualche secondo ad aggiornare il piano. Ricarica la pagina tra poco se non lo vedi ancora attivo."}
               </p>
             ) : null}
           </>
