@@ -4,6 +4,7 @@ import Link from "next/link";
 import AppHeaderServer from "../components/AppHeaderServer";
 import { createAdminClient } from "../lib/supabase/admin";
 import { createPublicClient } from "../lib/supabase/public";
+import { createClient } from "../lib/supabase/server";
 import SubscriptionPlans from "../components/SubscriptionPlans";
 import SearchEvents from "./SearchEvents";
 
@@ -105,6 +106,18 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const initialQuery = params.q?.trim() ?? "";
   const supabase = createPublicClient();
+
+  const authSupabase = await createClient();
+  const {
+    data: { user },
+  } = await authSupabase.auth.getUser();
+  const { data: viewerProfile } = user
+    ? await authSupabase
+        .from("profiles")
+        .select("account_type, account_plan")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
 
   const { data: events, error } = await supabase
     .from("public_events")
@@ -321,7 +334,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       <section className="mt-10">
-        <SubscriptionPlans />
+        <SubscriptionPlans
+          accountType={viewerProfile?.account_type}
+          currentPlan={viewerProfile?.account_plan}
+          isLoggedIn={Boolean(user)}
+        />
       </section>
 
       {error ? (

@@ -131,7 +131,8 @@ async function saveStripeIds(
   const adminSupabase = createAdminClient();
 
   if (!adminSupabase) {
-    throw new Error("Supabase admin non configurato.");
+    console.error("saveStripeIds: Supabase admin non configurato.");
+    return;
   }
 
   const updates: Record<string, string> = {};
@@ -150,7 +151,9 @@ async function saveStripeIds(
     .eq("id", userId);
 
   if (error) {
-    throw error;
+    // Salvare gli id Stripe non e critico: non deve bloccare ne ritardare
+    // l'attivazione del piano. Logghiamo soltanto.
+    console.error("saveStripeIds: impossibile salvare gli id Stripe.", error);
   }
 }
 
@@ -176,19 +179,17 @@ export async function POST(request: Request) {
   const billingPlan = object?.metadata?.billing_plan;
 
   if (event.type === "checkout.session.completed") {
-    await saveStripeIds(userId, object?.customer, object?.subscription);
-
+    // Prima l'attivazione del piano (critica), poi gli id Stripe (best-effort).
     if (isBillingPlan(billingPlan || "")) {
       await setAccountPlan(userId, "pro", billingPlan);
     }
+
+    await saveStripeIds(userId, object?.customer, object?.subscription);
 
     return NextResponse.json({ received: true });
   }
 
   if (event.type === "customer.subscription.updated") {
-    // L'oggetto qui e la subscription: object.id e l'id dell'abbonamento.
-    await saveStripeIds(userId, object?.customer, object?.id);
-
     // "past_due" significa solo che Stripe sta ancora ritentando l'addebito
     // (dunning): il piano resta Pro finche non diventa canceled/unpaid.
     const proStatuses = ["active", "trialing", "past_due"];
@@ -197,6 +198,9 @@ export async function POST(request: Request) {
       proStatuses.includes(object?.status || "") ? "pro" : "free",
       billingPlan
     );
+
+    // L'oggetto qui e la subscription: object.id e l'id dell'abbonamento.
+    await saveStripeIds(userId, object?.customer, object?.id);
 
     return NextResponse.json({ received: true });
   }
