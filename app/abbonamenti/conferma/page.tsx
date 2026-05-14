@@ -7,6 +7,7 @@ import PrivatePlusBadge from "../../../components/PrivatePlusBadge";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { createClient } from "../../../lib/supabase/server";
 import { billingPlans, isBillingPlan } from "../../../lib/stripe";
+import { areSubscriptionsEnabled } from "../../../lib/app-settings";
 
 type ConfermaPagamentoPageProps = {
   searchParams: Promise<{
@@ -60,6 +61,11 @@ export default async function ConfermaPagamentoPage({
   searchParams,
 }: ConfermaPagamentoPageProps) {
   const params = await searchParams;
+
+  if (!(await areSubscriptionsEnabled())) {
+    redirect("/");
+  }
+
   const supabase = await createClient();
 
   const {

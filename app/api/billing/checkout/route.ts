@@ -7,8 +7,13 @@ import {
   getStripePriceId,
   isBillingPlan,
 } from "../../../../lib/stripe";
+import { areSubscriptionsEnabled } from "../../../../lib/app-settings";
 
 export async function POST(request: Request) {
+  if (!(await areSubscriptionsEnabled())) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   const supabase = await createClient();
 
   const {

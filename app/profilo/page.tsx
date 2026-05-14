@@ -11,6 +11,7 @@ import PrivatePlusBadge from "../../components/PrivatePlusBadge";
 import SubscriptionPlans from "../../components/SubscriptionPlans";
 import AccountSettingsForm from "./AccountSettingsForm";
 import { findStripeSubscriptionForUser } from "../../lib/stripe-subscriptions";
+import { areSubscriptionsEnabled } from "../../lib/app-settings";
 
 type ProfiloPageProps = {
   searchParams: Promise<{
@@ -67,8 +68,10 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
     .eq("user_id", user.id)
     .is("read_at", null);
 
+  const subscriptionsEnabled = await areSubscriptionsEnabled();
+
   const billingStatus =
-    profile.account_plan === "pro"
+    subscriptionsEnabled && profile.account_plan === "pro"
       ? await findStripeSubscriptionForUser(user.id)
       : null;
 
@@ -190,14 +193,16 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
         </div>
       </section>
 
-      <section className="mb-6">
-        <SubscriptionPlans
-          accountType={profile.account_type}
-          billingStatus={billingStatus}
-          currentPlan={profile.account_plan}
-          isLoggedIn
-        />
-      </section>
+      {subscriptionsEnabled ? (
+        <section className="mb-6">
+          <SubscriptionPlans
+            accountType={profile.account_type}
+            billingStatus={billingStatus}
+            currentPlan={profile.account_plan}
+            isLoggedIn
+          />
+        </section>
+      ) : null}
 
       <section className="mb-6 rounded-3xl border border-gray-200 p-6">
         <h2 className="mb-5 text-xl font-semibold">I tuoi dati</h2>

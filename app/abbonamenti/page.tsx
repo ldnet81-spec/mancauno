@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import AppHeaderServer from "../../components/AppHeaderServer";
 import SubscriptionPlans from "../../components/SubscriptionPlans";
 import { createClient } from "../../lib/supabase/server";
 import { findStripeSubscriptionForUser } from "../../lib/stripe-subscriptions";
+import { areSubscriptionsEnabled } from "../../lib/app-settings";
 
 export const metadata: Metadata = {
   title: "Abbonamenti",
@@ -22,6 +24,11 @@ export default async function AbbonamentiPage({
   searchParams,
 }: AbbonamentiPageProps) {
   const params = await searchParams;
+
+  if (!(await areSubscriptionsEnabled())) {
+    redirect("/");
+  }
+
   const supabase = await createClient();
 
   const {

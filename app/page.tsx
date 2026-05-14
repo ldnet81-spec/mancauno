@@ -5,6 +5,7 @@ import AppHeaderServer from "../components/AppHeaderServer";
 import { createAdminClient } from "../lib/supabase/admin";
 import { createPublicClient } from "../lib/supabase/public";
 import { createClient } from "../lib/supabase/server";
+import { areSubscriptionsEnabled } from "../lib/app-settings";
 import SubscriptionPlans from "../components/SubscriptionPlans";
 import SearchEvents from "./SearchEvents";
 
@@ -118,6 +119,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         .eq("id", user.id)
         .single()
     : { data: null };
+
+  const subscriptionsEnabled = await areSubscriptionsEnabled();
 
   const { data: events, error } = await supabase
     .from("public_events")
@@ -333,13 +336,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
       </section>
 
-      <section className="mt-10">
-        <SubscriptionPlans
-          accountType={viewerProfile?.account_type}
-          currentPlan={viewerProfile?.account_plan}
-          isLoggedIn={Boolean(user)}
-        />
-      </section>
+      {subscriptionsEnabled ? (
+        <section className="mt-10">
+          <SubscriptionPlans
+            accountType={viewerProfile?.account_type}
+            currentPlan={viewerProfile?.account_plan}
+            isLoggedIn={Boolean(user)}
+          />
+        </section>
+      ) : null}
 
       {error ? (
         <div className="mt-8 rounded-2xl bg-red-50 p-4 text-sm text-red-700">

@@ -230,6 +230,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     .in("key", [
       "default_private_monthly_event_limit",
       "default_club_monthly_event_limit",
+      "subscriptions_enabled",
     ]);
 
   const { count: totalUsers } = await adminSupabase
@@ -373,7 +374,48 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       ) : null}
 
       {section === "settings" ? (
-        <section className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+        <div className="space-y-5">
+          <div className="rounded-3xl border border-gray-200 p-5">
+            <h2 className="text-2xl font-semibold">Abbonamenti a pagamento</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Mostra o nasconde le schermate dei piani Privato Plus e Club Pro
+              su home, profilo e pagina abbonamenti. Quando sono nascoste,
+              nessun cliente puo attivare un nuovo piano. Gli abbonamenti gia
+              attivi non vengono toccati e la pagina di gestione resta
+              raggiungibile.
+            </p>
+
+            <form
+              method="post"
+              action="/api/admin/settings/subscriptions"
+              className="mt-5 space-y-4"
+            >
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  name="subscriptions_enabled"
+                  value="true"
+                  defaultChecked={
+                    getSetting(settings, "subscriptions_enabled", "true") !==
+                    "false"
+                  }
+                  className="h-5 w-5"
+                />
+                <span className="text-sm font-medium text-black">
+                  Schermate dei piani a pagamento visibili agli utenti
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-black px-4 py-3 font-semibold !text-white"
+              >
+                Salva
+              </button>
+            </form>
+          </div>
+
+          <section className="grid gap-5 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-3xl border border-gray-200 p-5">
             <h2 className="text-2xl font-semibold">Limiti di default</h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -447,6 +489,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </div>
           </div>
         </section>
+        </div>
       ) : null}
 
       {section === "users" || section === "clubs" ? (
