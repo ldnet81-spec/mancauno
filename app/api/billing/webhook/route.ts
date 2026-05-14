@@ -7,8 +7,11 @@ export const runtime = "nodejs";
 
 type StripeObject = {
   client_reference_id?: string;
+  customer?: string;
+  id?: string;
   metadata?: Record<string, string>;
   status?: string;
+  subscription?: string;
 };
 
 type StripeEvent = {
@@ -37,6 +40,8 @@ function getStripeSignatureParts(signatureHeader: string) {
   );
 }
 
+const SIGNATURE_TOLERANCE_SECONDS = 300;
+
 function verifyStripeSignature(
   payload: string,
   signatureHeader: string,
@@ -45,6 +50,16 @@ function verifyStripeSignature(
   const { signatures, timestamp } = getStripeSignatureParts(signatureHeader);
 
   if (!timestamp || !signatures.length) {
+    return false;
+  }
+
+  // Rifiuta eventi troppo vecchi per evitare replay attack.
+  const timestampSeconds = Number(timestamp);
+  if (!Number.isFinite(timestampSeconds)) {
+    return false;
+  }
+  const ageSeconds = Math.abs(Date.now() / 1000 - timestampSeconds);
+  if (ageSeconds > SIGNATURE_TOLERANCE_SECONDS) {
     return false;
   }
 
@@ -104,6 +119,41 @@ async function setAccountPlan(
   }
 }
 
+async function saveStripeIds(
+  userId: string | undefined,
+  customerId: string | undefined,
+  subscriptionId: string | undefined
+) {
+  if (!userId || (!customerId && !subscriptionId)) {
+    return;
+  }
+
+  const adminSupabase = createAdminClient();
+
+  if (!adminSupabase) {
+    throw new Error("Supabase admin non configurato.");
+  }
+
+  const updates: Record<string, string> = {};
+
+  if (customerId) {
+    updates.stripe_customer_id = customerId;
+  }
+
+  if (subscriptionId) {
+    updates.stripe_subscription_id = subscriptionId;
+  }
+
+  const { error } = await adminSupabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const signatureHeader = request.headers.get("stripe-signature");
@@ -126,6 +176,8 @@ export async function POST(request: Request) {
   const billingPlan = object?.metadata?.billing_plan;
 
   if (event.type === "checkout.session.completed") {
+    await saveStripeIds(userId, object?.customer, object?.subscription);
+
     if (isBillingPlan(billingPlan || "")) {
       await setAccountPlan(userId, "pro", billingPlan);
     }
@@ -134,10 +186,15 @@ export async function POST(request: Request) {
   }
 
   if (event.type === "customer.subscription.updated") {
-    const activeStatuses = ["active", "trialing"];
+    // L'oggetto qui e la subscription: object.id e l'id dell'abbonamento.
+    await saveStripeIds(userId, object?.customer, object?.id);
+
+    // "past_due" significa solo che Stripe sta ancora ritentando l'addebito
+    // (dunning): il piano resta Pro finche non diventa canceled/unpaid.
+    const proStatuses = ["active", "trialing", "past_due"];
     await setAccountPlan(
       userId,
-      activeStatuses.includes(object?.status || "") ? "pro" : "free",
+      proStatuses.includes(object?.status || "") ? "pro" : "free",
       billingPlan
     );
 

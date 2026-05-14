@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { formatDateTimeItaly } from "../../../lib/date-time";
+import { sanitizeNextPath } from "../../../lib/auth-redirect";
 
 type EventPreview = {
   title: string;
@@ -41,6 +42,7 @@ function QuickSignupContent() {
   const searchParams = useSearchParams();
   const event = searchParams.get("event");
   const nextParam = searchParams.get("next");
+  const errorParam = searchParams.get("error");
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -57,7 +59,11 @@ function QuickSignupContent() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(
+    errorParam === "link-non-valido"
+      ? "Il link di accesso non e piu valido o e gia stato usato. Accedi di nuovo."
+      : ""
+  );
   const [eventPreview, setEventPreview] = useState<EventPreview | null>(null);
   const [eventPreviewLoading, setEventPreviewLoading] = useState(false);
   const [eventPreviewError, setEventPreviewError] = useState("");
@@ -134,7 +140,9 @@ function QuickSignupContent() {
     setLoading(true);
     setErrorMessage("");
 
-    const next = event ? `/e/${event}?join=1` : nextParam || "/profilo";
+    const next = event
+      ? `/e/${event}?join=1`
+      : sanitizeNextPath(nextParam, "/profilo");
 
     try {
       if (mode === "signup") {

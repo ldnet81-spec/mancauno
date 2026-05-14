@@ -31,14 +31,17 @@ export default async function AbbonamentiPage({
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("account_type, account_plan")
+        .select("account_type, account_plan, stripe_subscription_id")
         .eq("id", user.id)
         .single()
     : { data: null };
 
   const billingStatus =
     user && profile?.account_plan === "pro"
-      ? await findStripeSubscriptionForUser(user.id)
+      ? await findStripeSubscriptionForUser(
+          user.id,
+          profile?.stripe_subscription_id
+        )
       : null;
 
   return (

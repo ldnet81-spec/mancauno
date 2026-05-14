@@ -85,7 +85,9 @@ export default async function ConfermaPagamentoPage({
   const paidUserId =
     session?.metadata?.user_id || session?.client_reference_id || null;
   const paidPlan = session?.metadata?.billing_plan || null;
-  const isSameUser = !paidUserId || paidUserId === user.id;
+  // Se esiste una sessione Stripe deve appartenere proprio a questo utente:
+  // niente fallback "se manca lo user id va bene".
+  const isSameUser = !session || paidUserId === user.id;
   const isPaid =
     session?.status === "complete" || session?.payment_status === "paid";
   const canActivatePlan =

@@ -22,9 +22,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const subscription = await findStripeSubscriptionForUser(user.id);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id, stripe_subscription_id")
+    .eq("id", user.id)
+    .single();
 
-  if (!subscription?.customer) {
+  let customerId: string | null = profile?.stripe_customer_id ?? null;
+
+  // Fallback per abbonamenti creati prima dello storage degli id Stripe.
+  if (!customerId) {
+    const subscription = await findStripeSubscriptionForUser(
+      user.id,
+      profile?.stripe_subscription_id
+    );
+    customerId = subscription?.customer ?? null;
+  }
+
+  if (!customerId) {
     return NextResponse.redirect(
       new URL("/abbonamenti?error=abbonamento-non-trovato", request.url)
     );
@@ -32,7 +47,7 @@ export async function POST(request: Request) {
 
   const siteUrl = getSiteUrl();
   const portalParams = new URLSearchParams();
-  portalParams.set("customer", subscription.customer);
+  portalParams.set("customer", customerId);
   portalParams.set("return_url", `${siteUrl}/abbonamenti/gestione`);
 
   const portalResponse = await fetch(

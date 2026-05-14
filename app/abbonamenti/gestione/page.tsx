@@ -19,7 +19,9 @@ export default async function GestioneAbbonamentoPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, account_type, account_plan, club_name")
+    .select(
+      "display_name, account_type, account_plan, club_name, stripe_subscription_id"
+    )
     .eq("id", user.id)
     .single();
 
@@ -29,7 +31,10 @@ export default async function GestioneAbbonamentoPage() {
       : profile?.display_name || user.email || "Il tuo profilo";
   const isPro = profile?.account_plan === "pro";
   const billingStatus = isPro
-    ? await findStripeSubscriptionForUser(user.id)
+    ? await findStripeSubscriptionForUser(
+        user.id,
+        profile?.stripe_subscription_id
+      )
     : null;
   const isCancellationScheduled = Boolean(
     billingStatus?.cancelAtPeriodEnd && billingStatus.currentPeriodEnd
