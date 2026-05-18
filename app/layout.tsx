@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import CookieBanner from "../components/CookieBanner";
 import AppFooter from "../components/AppFooter";
 import "./globals.css";
@@ -94,6 +95,7 @@ export default function RootLayout({
           <AppFooter />
         </div>
         <CookieBanner />
+        <Analytics />
       </body>
     </html>
   );
