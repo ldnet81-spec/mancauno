@@ -168,16 +168,47 @@ export default function AppHeader({ initialUserState }: AppHeaderProps) {
     <header className="sticky top-3 z-40 mb-8">
       <div className="rounded-[1.75rem] border border-white/80 bg-white/88 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-6">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="inline-flex min-w-0 items-center">
-            <Image
-              src="/logo-full.png"
-              alt="mancauno.it"
-              width={280}
-              height={76}
-              className="h-12 w-auto max-w-[210px] sm:h-16 sm:max-w-[320px]"
-              priority
-            />
-          </Link>
+          <div className="flex min-w-0 items-center gap-3 lg:gap-6">
+            <Link href="/" className="inline-flex min-w-0 items-center">
+              <Image
+                src="/logo-full.png"
+                alt="mancauno.it"
+                width={280}
+                height={76}
+                className="h-12 w-auto max-w-[210px] sm:h-16 sm:max-w-[320px]"
+                priority
+              />
+            </Link>
+
+            <nav className="hidden items-center gap-1 lg:flex">
+              {[
+                { href: "/", label: "Home", show: true },
+                {
+                  href: "/profilo/eventi",
+                  label: "Eventi",
+                  show: userState.isLoggedIn,
+                },
+                { href: profileHref, label: "Profilo", show: true },
+              ]
+                .filter((item) => item.show)
+                .map((item) => {
+                  const active = isActive(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                        active
+                          ? "bg-slate-100 text-blue-600"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+            </nav>
+          </div>
 
           <div className="flex shrink-0 items-center gap-3">
             <Link
