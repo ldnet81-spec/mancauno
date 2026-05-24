@@ -37,6 +37,20 @@ function formatAvailabilityLabel(remainingSpots: number) {
   return `Mancano ${remainingSpots} posti disponibili`;
 }
 
+// Un evento e considerato "passato" 24 ore dopo l'orario di inizio:
+// finestra di tolleranza per chi cerca info durante o subito dopo l'evento.
+const EVENT_PAST_GRACE_MS = 24 * 60 * 60 * 1000;
+
+function isEventPast(startsAt: string | null | undefined): boolean {
+  if (!startsAt) {
+    return false;
+  }
+  const startTime = new Date(startsAt).getTime();
+  return (
+    Number.isFinite(startTime) && Date.now() - startTime > EVENT_PAST_GRACE_MS
+  );
+}
+
 function getCreatorName(profile: any, event: any) {
   if (profile?.account_type === "circolo" && profile.club_name) {
     return profile.club_name;
@@ -146,11 +160,16 @@ export async function generateMetadata({
   const sportLabel = event.sport || "giocare";
   const cityLabel = event.city || "la tua zona";
 
+  const isCancelled = event.status !== "active";
+  const isPast = isEventPast(event.starts_at);
+  const shouldNoIndex = isCancelled || isPast;
+
   const title = `Manca uno per ${sportLabel} a ${cityLabel}`;
 
-  const description =
-    event.status !== "active"
-      ? "Questo evento non e piu disponibile."
+  const description = isCancelled
+    ? "Questo evento non e piu disponibile."
+    : isPast
+      ? `Evento sportivo a ${cityLabel} svolto il ${formattedDate}.`
       : `Unisciti all'evento sportivo su mancauno.it. ${
           remainingSpots <= 0
             ? `Evento completo${
@@ -172,6 +191,12 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      canonical: `/e/${shortCode}`,
+    },
+    ...(shouldNoIndex && {
+      robots: { index: false, follow: true },
+    }),
     openGraph: {
       title,
       description,
@@ -262,7 +287,9 @@ export default async function EventPage({ params }: EventPageProps) {
 
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
-  const isUnavailable = event.status !== "active";
+  const isCancelled = event.status !== "active";
+  const isPast = isEventPast(event.starts_at);
+  const isUnavailable = isCancelled || isPast;
   let privateParticipants: any[] = [];
 
   if (isCreator) {
@@ -302,9 +329,11 @@ export default async function EventPage({ params }: EventPageProps) {
         }) ?? [];
     }
   }
-  const availabilityLabel = isUnavailable
+  const availabilityLabel = isCancelled
     ? "Evento non disponibile"
-    : formatAvailabilityLabel(remainingSpots);
+    : isPast
+      ? "Evento concluso"
+      : formatAvailabilityLabel(remainingSpots);
   const availabilityClassName = isUnavailable
     ? "bg-gray-100 text-gray-700"
     : isFull
@@ -329,8 +358,70 @@ export default async function EventPage({ params }: EventPageProps) {
 
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
 
+  // Structured data schema.org per l'evento: permette a Google di mostrare
+  // rich result (data, sede, organizzatore) e ai social di capirne la natura.
+  const eventJsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: event.title,
+    description:
+      event.notes ||
+      `${event.sport || "Evento sportivo"}${
+        event.city ? ` a ${event.city}` : ""
+      } su mancauno.it.`,
+    startDate: event.starts_at,
+    url: eventUrl,
+    eventStatus: isCancelled
+      ? "https://schema.org/EventCancelled"
+      : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    ...(event.sport ? { sport: event.sport } : {}),
+    location: {
+      "@type": "Place",
+      name: event.location_name || event.city || "Sede da definire",
+      ...(event.city || event.location_name
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              addressCountry: "IT",
+              ...(event.city ? { addressLocality: event.city } : {}),
+              ...(event.location_name
+                ? { streetAddress: event.location_name }
+                : {}),
+            },
+          }
+        : {}),
+    },
+    organizer: {
+      "@type": creatorType === "Circolo" ? "SportsClub" : "Person",
+      name: creatorName,
+      ...(creatorType === "Circolo"
+        ? { url: `${siteUrl}/club/${event.creator_id}` }
+        : {}),
+    },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+      availability:
+        remainingSpots > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/SoldOut",
+      url: eventUrl,
+      validFrom: event.starts_at,
+    },
+    ...(event.total_spots
+      ? { maximumAttendeeCapacity: event.total_spots }
+      : {}),
+  };
+
   return (
     <main className="mx-auto min-h-screen max-w-md bg-white px-6 pb-36 pt-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
+      />
+
      <div className="mb-6 flex items-center justify-between gap-4">
   <BrandHeader />
 
@@ -411,9 +502,13 @@ export default async function EventPage({ params }: EventPageProps) {
 
       {isUnavailable ? (
         <section className="mt-5 rounded-3xl border border-gray-200 bg-gray-50 p-6">
-          <h2 className="text-lg font-semibold">Evento non disponibile</h2>
+          <h2 className="text-lg font-semibold">
+            {isCancelled ? "Evento non disponibile" : "Evento concluso"}
+          </h2>
           <p className="mt-2 text-gray-600">
-            Questo evento è stato annullato o non è più attivo.
+            {isCancelled
+              ? "Questo evento è stato annullato o non è più attivo."
+              : `Questo evento si è già svolto il ${formattedDate} alle ${formattedTime}.`}
           </p>
         </section>
       ) : null}
@@ -468,43 +563,85 @@ export default async function EventPage({ params }: EventPageProps) {
       <section className="mt-5 rounded-3xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold">Organizzatore</h2>
 
-        <div className="mt-4 flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-xl font-semibold">
-            {creatorProfile?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={creatorProfile.avatar_url}
-                alt={creatorName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              creatorName.slice(0, 1).toUpperCase()
-            )}
-          </div>
-
-          <div className="min-w-0">
-            <p className="font-semibold text-black">{creatorName}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-sm text-gray-600">{creatorType}</p>
-              {creatorType === "Circolo" ? (
-                <>
-                  <span className="rounded-full bg-black px-2 py-0.5 text-xs font-semibold !text-white">
-                    Club
-                  </span>
-                  {creatorIsClubPro ? <ClubProBadge compact /> : null}
-                </>
-              ) : null}
-
-              {creatorIsPrivatePlus ? <PrivatePlusBadge compact /> : null}
+        {creatorType === "Circolo" ? (
+          <Link
+            href={`/club/${event.creator_id}`}
+            aria-label={`Vai alla pagina del club ${creatorName}`}
+            className="group mt-4 -mx-2 flex items-start gap-4 rounded-2xl px-2 py-2 transition hover:bg-gray-50"
+          >
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-xl font-semibold">
+              {creatorProfile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={creatorProfile.avatar_url}
+                  alt={creatorName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                creatorName.slice(0, 1).toUpperCase()
+              )}
             </div>
 
-            {creatorProfile?.city ? (
-              <p className="mt-1 text-sm text-gray-600">
-                {creatorProfile.city}
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-black group-hover:underline">
+                {creatorName}
               </p>
-            ) : null}
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-sm text-gray-600">{creatorType}</p>
+                <span className="rounded-full bg-black px-2 py-0.5 text-xs font-semibold !text-white">
+                  Club
+                </span>
+                {creatorIsClubPro ? <ClubProBadge compact /> : null}
+              </div>
+
+              {creatorProfile?.city ? (
+                <p className="mt-1 text-sm text-gray-600">
+                  {creatorProfile.city}
+                </p>
+              ) : null}
+
+              <p className="mt-2 text-xs font-semibold text-blue-600">
+                Apri pagina club →
+              </p>
+            </div>
+
+            <span
+              aria-hidden
+              className="self-center text-3xl text-gray-300 transition group-hover:text-blue-600"
+            >
+              ›
+            </span>
+          </Link>
+        ) : (
+          <div className="mt-4 flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-xl font-semibold">
+              {creatorProfile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={creatorProfile.avatar_url}
+                  alt={creatorName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                creatorName.slice(0, 1).toUpperCase()
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <p className="font-semibold text-black">{creatorName}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-sm text-gray-600">{creatorType}</p>
+                {creatorIsPrivatePlus ? <PrivatePlusBadge compact /> : null}
+              </div>
+
+              {creatorProfile?.city ? (
+                <p className="mt-1 text-sm text-gray-600">
+                  {creatorProfile.city}
+                </p>
+              ) : null}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-gray-50 p-4">

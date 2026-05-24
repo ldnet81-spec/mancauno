@@ -69,25 +69,58 @@ export async function generateMetadata({
 
   const { data: profile } = await adminSupabase
     .from("profiles")
-    .select("display_name, club_name, city, bio, account_type")
+    .select("display_name, club_name, city, bio, account_type, avatar_url")
     .eq("id", id)
     .single();
 
   if (!profile || profile.account_type !== "circolo") {
     return {
       title: "Club non trovato",
+      robots: { index: false, follow: true },
     };
   }
 
   const clubName = getClubName(profile);
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
+  const canonical = `/club/${id}`;
+  const description =
+    profile.bio ||
+    `Scopri eventi sportivi, contatti e attivita di ${clubName}${
+      profile.city ? ` a ${profile.city}` : ""
+    } su mancauno.it.`;
+
+  const ogImages = profile.avatar_url
+    ? [{ url: profile.avatar_url as string, alt: clubName }]
+    : [
+        {
+          url: `${siteUrl}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: clubName,
+        },
+      ];
 
   return {
     title: clubName,
-    description:
-      profile.bio ||
-      `Scopri eventi sportivi, contatti e attivita di ${clubName} su mancauno.it.`,
+    description,
     alternates: {
-      canonical: `/club/${id}`,
+      canonical,
+    },
+    openGraph: {
+      title: clubName,
+      description,
+      url: `${siteUrl}${canonical}`,
+      siteName: "mancauno.it",
+      locale: "it_IT",
+      type: "profile",
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: clubName,
+      description,
+      images: ogImages.map((image) => image.url),
     },
   };
 }
@@ -145,8 +178,51 @@ export default async function ClubPage({ params }: ClubPageProps) {
           .maybeSingle()
       : { data: null };
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
+
+  const externalLinks = [
+    getExternalHref(profile.club_website),
+    getExternalHref(profile.club_instagram),
+  ].filter((value): value is string => Boolean(value));
+
+  // Structured data schema.org per il club: aiuta Google a mostrare
+  // snippet ricchi (foto, indirizzo, telefono) nelle SERP locali.
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "SportsClub",
+    "@id": `${siteUrl}/club/${id}`,
+    name: clubName,
+    url: `${siteUrl}/club/${id}`,
+    description:
+      profile.bio ||
+      `${clubName}${profile.city ? ` a ${profile.city}` : ""} su mancauno.it.`,
+    ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+    ...(profile.city || profile.club_address
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            addressCountry: "IT",
+            ...(profile.city ? { addressLocality: profile.city } : {}),
+            ...(profile.club_address
+              ? { streetAddress: profile.club_address }
+              : {}),
+          },
+        }
+      : {}),
+    ...(profile.phone ? { telephone: profile.phone } : {}),
+    ...(profile.club_email ? { email: profile.club_email } : {}),
+    ...(externalLinks.length ? { sameAs: externalLinks } : {}),
+    ...(profile.club_sports?.length ? { sport: profile.club_sports } : {}),
+  };
+
   return (
     <main className="mx-auto min-h-screen max-w-3xl bg-white px-6 py-8 text-black">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <AppHeaderServer />
 
       <section className="rounded-3xl border border-gray-200 p-6">

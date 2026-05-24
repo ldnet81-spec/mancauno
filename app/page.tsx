@@ -336,6 +336,32 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
       </section>
 
+      <section className="mt-10">
+        <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-8">
+          <div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.06em] text-orange-600">
+                Tutti i club
+              </p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+                Trova il club sportivo della tua zona
+              </h2>
+              <p className="mt-3 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+                Esplora i circoli presenti su mancauno.it: filtra per citta e per
+                sport, guarda i contatti, vedi gli eventi aperti.
+              </p>
+            </div>
+            <Link
+              href="/club"
+              className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-slate-950 px-6 font-black !text-white shadow-[0_18px_35px_rgba(15,23,42,0.18)] transition hover:bg-blue-700 sm:min-h-16 sm:px-8 sm:text-lg"
+            >
+              Esplora i club
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {subscriptionsEnabled ? (
         <section className="mt-10">
           <SubscriptionPlans
