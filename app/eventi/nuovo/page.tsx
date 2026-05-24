@@ -3,21 +3,7 @@
 import AppHeader from "../../../components/AppHeader";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-
-const sports = [
-  { label: "Calcio/calcetto", emoji: "⚽" },
-  { label: "Padel", emoji: "🎾" },
-  { label: "Tennis", emoji: "🎾" },
-  { label: "Beach volley", emoji: "🏐" },
-  { label: "Basket", emoji: "🏀" },
-  { label: "Running", emoji: "🏃" },
-  { label: "MTB", emoji: "🚴" },
-  { label: "Trekking", emoji: "🥾" },
-  { label: "Nuoto", emoji: "🏊" },
-  { label: "Allenamento", emoji: "🏋️" },
-  { label: "Lezione privata", emoji: "🎯" },
-  { label: "Altro evento", emoji: "✨" },
-];
+import { SPORTS as sports } from "../../../lib/sports";
 
 type EntryType = "open" | "approval";
 type SkillLevel = "amatoriale" | "intermedio" | "esperto";

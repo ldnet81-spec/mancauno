@@ -3,16 +3,7 @@ import Link from "next/link";
 import AppHeaderServer from "../../components/AppHeaderServer";
 import ClubProBadge from "../../components/ClubProBadge";
 import { createAdminClient } from "../../lib/supabase/admin";
-
-// Sport selezionabili nel filtro. Coerenti con la lista in home;
-// "Altro evento" e escluso perche non e uno sport reale.
-const AVAILABLE_SPORTS = [
-  "Calcetto",
-  "Padel",
-  "Tennis",
-  "Basket",
-  "Running",
-] as const;
+import { SPORTS } from "../../lib/sports";
 
 type ClubsPageProps = {
   searchParams: Promise<{
@@ -168,9 +159,9 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-600"
             >
               <option value="">Tutti gli sport</option>
-              {AVAILABLE_SPORTS.map((sport) => (
-                <option key={sport} value={sport}>
-                  {sport}
+              {SPORTS.map((sport) => (
+                <option key={sport.label} value={sport.label}>
+                  {sport.emoji} {sport.label}
                 </option>
               ))}
             </select>
