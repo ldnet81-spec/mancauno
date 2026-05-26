@@ -222,6 +222,7 @@ export default function QuickSignupForm() {
               phone: phone.trim() || null,
               city: city.trim() || null,
               bio: bio.trim() || null,
+              monthly_event_limit_override: 5,
               ...clubFields,
             },
           },
@@ -254,6 +255,7 @@ export default function QuickSignupForm() {
               phone: phone.trim() || null,
               city: city.trim() || null,
               bio: bio.trim() || null,
+              monthly_event_limit_override: 5,
               ...clubFields,
               avatar_url: avatarUrl,
             })

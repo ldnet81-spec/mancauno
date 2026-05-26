@@ -19,14 +19,57 @@ type CreateEventPayload = {
   notes?: string;
 };
 
-function getCurrentMonthRange() {
-  const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+// Aggiunge un mese gestendo il rollover dei giorni:
+// es. 31 gennaio + 1 mese = 28 febbraio (29 negli anni bisestili).
+function addOneMonth(date: Date): Date {
+  const result = new Date(date);
+  const targetDay = result.getUTCDate();
+  result.setUTCMonth(result.getUTCMonth() + 1);
+  if (result.getUTCDate() !== targetDay) {
+    // JavaScript ha riportato al mese successivo: torniamo all'ultimo
+    // giorno del mese che ci interessava.
+    result.setUTCDate(0);
+  }
+  return result;
+}
 
+// Finestra mensile ancorata alla data di iscrizione dell'utente:
+// se ti sei registrato il 10 maggio, il ciclo va dal 10 al 10 di ogni mese.
+function getUserMonthlyRange(
+  registrationIso: string | null | undefined,
+  now: Date
+) {
+  if (!registrationIso) {
+    // Fallback al mese di calendario se manca created_at.
+    const start = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    );
+    const end = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
+    );
+    return { start: start.toISOString(), end: end.toISOString() };
+  }
+
+  const registration = new Date(registrationIso);
+  if (Number.isNaN(registration.getTime()) || registration > now) {
+    return {
+      start: registration.toISOString(),
+      end: addOneMonth(registration).toISOString(),
+    };
+  }
+
+  let periodStart = registration;
+  while (true) {
+    const next = addOneMonth(periodStart);
+    if (next > now) {
+      break;
+    }
+    periodStart = next;
+  }
+  const periodEnd = addOneMonth(periodStart);
   return {
-    start: start.toISOString(),
-    end: end.toISOString(),
+    start: periodStart.toISOString(),
+    end: periodEnd.toISOString(),
   };
 }
 
@@ -135,19 +178,29 @@ export async function POST(request: Request) {
 
   const { data: profile } = await adminSupabase
     .from("profiles")
-    .select("account_type, account_plan, monthly_event_limit_override")
+    .select(
+      "account_type, account_plan, monthly_event_limit_override, created_at"
+    )
     .eq("id", user.id)
     .single();
 
   if (profile?.account_plan !== "pro") {
-    const { start, end } = getCurrentMonthRange();
+    const { start, end } = getUserMonthlyRange(profile?.created_at, new Date());
     const defaultMonthlyLimit = await getDefaultMonthlyLimit(
       adminSupabase,
       profile?.account_type
     );
-    const overrideLimit = Number(profile?.monthly_event_limit_override);
+    // Attenzione: Number(null) === 0, quindi un override non impostato verrebbe
+    // letto come "0 eventi". Controlliamo esplicitamente null/undefined prima.
+    const rawOverride = profile?.monthly_event_limit_override;
+    const overrideLimit =
+      rawOverride === null || rawOverride === undefined
+        ? null
+        : Number(rawOverride);
     const monthlyLimit =
-      Number.isFinite(overrideLimit) && overrideLimit >= 0
+      overrideLimit !== null &&
+      Number.isFinite(overrideLimit) &&
+      overrideLimit >= 0
         ? overrideLimit
         : defaultMonthlyLimit;
 
