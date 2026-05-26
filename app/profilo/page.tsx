@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
+import { createAdminClient } from "../../lib/supabase/admin";
 import BrandHeader from "../../components/BrandHeader";
 import ProfileForm from "./ProfileForm";
 import LogoutButton from "./LogoutButton";
@@ -46,10 +47,16 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
     redirect("/auth/quick-signup");
   }
 
-  const { count: organizedCount } = await supabase
-    .from("events")
-    .select("id", { count: "exact", head: true })
-    .eq("creator_id", user.id);
+  // Usiamo il client admin per il conteggio: la RLS sulla tabella events
+  // potrebbe filtrare eventi non pubblici/passati che l'utente ha comunque
+  // creato, falsando il totale "organizzati".
+  const adminSupabaseForCounts = createAdminClient();
+  const { count: organizedCount } = adminSupabaseForCounts
+    ? await adminSupabaseForCounts
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .eq("creator_id", user.id)
+    : { count: 0 };
 
   const { data: myParticipationsForCount } = await supabase.rpc(
     "get_my_participations"

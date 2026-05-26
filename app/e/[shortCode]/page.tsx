@@ -248,10 +248,17 @@ export default async function EventPage({ params }: EventPageProps) {
     .eq("id", event.creator_id)
     .single();
 
-  const { count: creatorEventsCount } = await supabase
-    .from("events")
-    .select("id", { count: "exact", head: true })
-    .eq("creator_id", event.creator_id);
+  // Conteggio totale eventi del creator: usa il client admin per bypassare la
+  // RLS, altrimenti per un visitatore anonimo (o per il creator stesso se la
+  // policy e restrittiva) verrebbero contati solo gli eventi pubblicamente
+  // visibili e il totale risulterebbe sottostimato.
+  const adminSupabaseForCount = createAdminClient();
+  const { count: creatorEventsCount } = adminSupabaseForCount
+    ? await adminSupabaseForCount
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .eq("creator_id", event.creator_id)
+    : { count: 0 };
 
   let currentParticipationStatus: string | null = null;
 
