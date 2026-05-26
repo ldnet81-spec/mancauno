@@ -44,9 +44,9 @@ export async function POST(request: Request) {
   const privateLimit = getNumber(
     formData,
     "default_private_monthly_event_limit",
-    8
+    5
   );
-  const clubLimit = getNumber(formData, "default_club_monthly_event_limit", 4);
+  const clubLimit = getNumber(formData, "default_club_monthly_event_limit", 5);
 
   const { error } = await adminSupabase.from("app_settings").upsert(
     [

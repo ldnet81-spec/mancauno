@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../lib/supabase/admin";
 
-const DEFAULT_PRIVATE_MONTHLY_EVENT_LIMIT = 8;
-const DEFAULT_CLUB_MONTHLY_EVENT_LIMIT = 4;
+const DEFAULT_PRIVATE_MONTHLY_EVENT_LIMIT = 5;
+const DEFAULT_CLUB_MONTHLY_EVENT_LIMIT = 5;
 
 type CreateEventPayload = {
   club_id?: string;

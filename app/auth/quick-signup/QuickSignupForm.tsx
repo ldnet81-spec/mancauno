@@ -7,6 +7,15 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatDateTimeItaly } from "../../../lib/date-time";
 import { sanitizeNextPath } from "../../../lib/auth-redirect";
+import { SPORTS } from "../../../lib/sports";
+import { CLUB_SERVICES } from "../../../lib/club-services";
+
+// Gli sport che un club puo dichiarare di offrire (esclusa "Altro evento").
+const availableSports = SPORTS.filter(
+  (sport) => sport.label !== "Altro evento"
+).map((sport) => sport.label);
+
+const availableServices = CLUB_SERVICES;
 
 type EventPreview = {
   title: string;
@@ -55,8 +64,29 @@ export default function QuickSignupForm() {
   );
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [bio, setBio] = useState("");
   const [clubName, setClubName] = useState("");
+  const [clubAddress, setClubAddress] = useState("");
+  const [clubWhatsapp, setClubWhatsapp] = useState("");
+  const [clubEmail, setClubEmail] = useState("");
+  const [clubWebsite, setClubWebsite] = useState("");
+  const [clubInstagram, setClubInstagram] = useState("");
+  const [clubSports, setClubSports] = useState<string[]>([]);
+  const [clubServices, setClubServices] = useState<string[]>([]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  function toggleSelection(
+    value: string,
+    selected: string[],
+    setter: (values: string[]) => void
+  ) {
+    if (selected.includes(value)) {
+      setter(selected.filter((item) => item !== value));
+      return;
+    }
+    setter([...selected, value]);
+  }
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
@@ -170,16 +200,29 @@ export default function QuickSignupForm() {
           return;
         }
 
+        const isCircolo = accountType === "circolo";
+        const clubFields = {
+          club_name: isCircolo ? clubName.trim() || null : null,
+          club_address: isCircolo ? clubAddress.trim() || null : null,
+          club_whatsapp: isCircolo ? clubWhatsapp.trim() || null : null,
+          club_email: isCircolo ? clubEmail.trim() || null : null,
+          club_website: isCircolo ? clubWebsite.trim() || null : null,
+          club_instagram: isCircolo ? clubInstagram.trim() || null : null,
+          club_sports: isCircolo ? clubSports : [],
+          club_services: isCircolo ? clubServices : [],
+        };
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              display_name: displayName.trim(),
+              display_name: displayName.trim() || null,
               account_type: accountType,
               phone: phone.trim() || null,
-              club_name:
-                accountType === "circolo" ? clubName.trim() : null,
+              city: city.trim() || null,
+              bio: bio.trim() || null,
+              ...clubFields,
             },
           },
         });
@@ -206,11 +249,12 @@ export default function QuickSignupForm() {
           await supabase
             .from("profiles")
             .update({
-              display_name: displayName.trim(),
+              display_name: displayName.trim() || null,
               account_type: accountType,
               phone: phone.trim() || null,
-              club_name:
-                accountType === "circolo" ? clubName.trim() : null,
+              city: city.trim() || null,
+              bio: bio.trim() || null,
+              ...clubFields,
               avatar_url: avatarUrl,
             })
             .eq("id", user.id);
@@ -352,31 +396,169 @@ export default function QuickSignupForm() {
                 </select>
               </label>
 
-              <input
-                type="text"
-                placeholder="Nome"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-              />
-
               {accountType === "circolo" ? (
-                <input
-                  type="text"
-                  placeholder="Nome circolo"
-                  value={clubName}
-                  onChange={(event) => setClubName(event.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-                />
-              ) : null}
+                <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-black">
+                      Dati del circolo
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600">
+                      Compila qui sotto il profilo del club. Questi campi
+                      appariranno sulla pagina pubblica del circolo e li potrai
+                      modificare in qualsiasi momento dal tuo profilo.
+                    </p>
+                  </div>
 
-              <input
-                type="tel"
-                placeholder="Telefono opzionale"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
-              />
+                  <input
+                    type="text"
+                    placeholder="Nome circolo"
+                    value={clubName}
+                    onChange={(event) => setClubName(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Nome pubblico / referente"
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Indirizzo (Via Roma 10)"
+                    value={clubAddress}
+                    onChange={(event) => setClubAddress(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Citta"
+                    value={city}
+                    onChange={(event) => setCity(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      type="tel"
+                      placeholder="Telefono"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="WhatsApp"
+                      value={clubWhatsapp}
+                      onChange={(event) => setClubWhatsapp(event.target.value)}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                    />
+                  </div>
+
+                  <input
+                    type="email"
+                    placeholder="Email club (info@club.it)"
+                    value={clubEmail}
+                    onChange={(event) => setClubEmail(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <input
+                    type="url"
+                    placeholder="Sito web (https://www.tuoclub.it)"
+                    value={clubWebsite}
+                    onChange={(event) => setClubWebsite(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <input
+                    type="url"
+                    placeholder="Instagram (https://instagram.com/tuoclub)"
+                    value={clubInstagram}
+                    onChange={(event) => setClubInstagram(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <div>
+                    <span className="text-sm font-medium">
+                      Sport disponibili
+                    </span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {availableSports.map((sport) => (
+                        <button
+                          key={sport}
+                          type="button"
+                          onClick={() =>
+                            toggleSelection(sport, clubSports, setClubSports)
+                          }
+                          className={`rounded-full px-3 py-1 text-sm font-medium ${
+                            clubSports.includes(sport)
+                              ? "bg-black !text-white"
+                              : "border border-gray-200 bg-white text-gray-700"
+                          }`}
+                        >
+                          {sport}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-sm font-medium">Servizi</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {availableServices.map((service) => (
+                        <button
+                          key={service}
+                          type="button"
+                          onClick={() =>
+                            toggleSelection(
+                              service,
+                              clubServices,
+                              setClubServices
+                            )
+                          }
+                          className={`rounded-full px-3 py-1 text-sm font-medium ${
+                            clubServices.includes(service)
+                              ? "bg-black !text-white"
+                              : "border border-gray-200 bg-white text-gray-700"
+                          }`}
+                        >
+                          {service}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <textarea
+                    placeholder="Bio: descrivi il circolo, gli sport offerti, i servizi"
+                    value={bio}
+                    onChange={(event) => setBio(event.target.value)}
+                    rows={4}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Nome"
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+
+                  <input
+                    type="tel"
+                    placeholder="Telefono opzionale"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-black"
+                  />
+                </>
+              )}
 
               <label className="block rounded-xl border border-dashed border-gray-300 bg-white p-4">
                 <span className="text-sm font-medium">Foto profilo</span>

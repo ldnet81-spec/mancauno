@@ -3,6 +3,8 @@
 import { createClient } from "../../lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SPORTS } from "../../lib/sports";
+import { CLUB_SERVICES } from "../../lib/club-services";
 
 type ProfileFormProps = {
   profile: {
@@ -24,30 +26,12 @@ type ProfileFormProps = {
   };
 };
 
-const availableSports = [
-  "Calcio/calcetto",
-  "Padel",
-  "Tennis",
-  "Beach volley",
-  "Basket",
-  "Running",
-  "MTB",
-  "Trekking",
-  "Nuoto",
-  "Allenamento",
-  "Lezione privata",
-];
+// I club non offrono "Altro evento" come sport: solo discipline reali.
+const availableSports = SPORTS.filter(
+  (sport) => sport.label !== "Altro evento"
+).map((sport) => sport.label);
 
-const availableServices = [
-  "Spogliatoi",
-  "Parcheggio",
-  "Bar",
-  "Istruttori",
-  "Noleggio attrezzatura",
-  "Docce",
-  "Illuminazione serale",
-  "Area relax",
-];
+const availableServices = CLUB_SERVICES;
 
 export default function ProfileForm({ profile }: ProfileFormProps) {
   const router = useRouter();
@@ -229,7 +213,7 @@ async function uploadAvatar() {
             <div>
               <p className="font-semibold">Pagina club inclusa</p>
               <p className="mt-1 text-sm text-gray-600">
-                Piano Free: fino a 8 eventi al mese. Il piano Pro con eventi
+                Piano Free: fino a 5 eventi al mese. Il piano Pro con eventi
                 illimitati sara disponibile piu avanti.
               </p>
             </div>

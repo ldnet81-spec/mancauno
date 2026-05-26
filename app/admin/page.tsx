@@ -103,8 +103,8 @@ function formatMonthlyLimit(profile: any, settings: any[] | null) {
 
   const fallback =
     profile.account_type === "circolo"
-      ? getSetting(settings, "default_club_monthly_event_limit", "4")
-      : getSetting(settings, "default_private_monthly_event_limit", "8");
+      ? getSetting(settings, "default_club_monthly_event_limit", "5")
+      : getSetting(settings, "default_private_monthly_event_limit", "5");
 
   return `${fallback} eventi/mese`;
 }
@@ -439,7 +439,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   defaultValue={getSetting(
                     settings,
                     "default_private_monthly_event_limit",
-                    "8"
+                    "5"
                   )}
                   className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
                 />
@@ -456,7 +456,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   defaultValue={getSetting(
                     settings,
                     "default_club_monthly_event_limit",
-                    "4"
+                    "5"
                   )}
                   className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
                 />
