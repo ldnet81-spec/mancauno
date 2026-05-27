@@ -287,12 +287,13 @@ function NewEventForm() {
       return;
     }
 
-    if (!result.short_code) {
-      setErrorMessage("Evento creato, ma short code mancante.");
+    const target = result.slug || result.short_code;
+    if (!target) {
+      setErrorMessage("Evento creato, ma identificativo mancante.");
       return;
     }
 
-    router.push(`/e/${result.short_code}`);
+    router.push(`/e/${target}`);
   }
 
   const completedRequiredFields = [

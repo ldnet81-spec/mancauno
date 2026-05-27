@@ -39,7 +39,7 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan")
+    .select("id, slug, display_name, city, bio, avatar_url, role, created_at, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan")
     .eq("id", user.id)
     .single();
 
@@ -149,7 +149,7 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
 
         {profile.account_type === "circolo" ? (
           <Link
-            href={`/club/${profile.id}`}
+            href={`/club/${profile.slug ?? profile.id}`}
             className="mt-5 block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-black"
           >
             Vedi pagina pubblica del club

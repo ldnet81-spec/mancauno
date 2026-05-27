@@ -9,6 +9,7 @@ import PrivatePlusBadge from "../components/PrivatePlusBadge";
 type EventItem = {
   id: string;
   short_code: string;
+  slug?: string | null;
   sport: string;
   sport_emoji: string;
   title: string;
@@ -371,7 +372,7 @@ export default function SearchEvents({
             return (
               <Link
                 key={event.id}
-                href={`/e/${event.short_code}`}
+                href={`/e/${event.slug ?? event.short_code}`}
                 className="block rounded-3xl border border-gray-200 bg-white p-5 text-black"
               >
                 <div className="flex items-start justify-between gap-4">

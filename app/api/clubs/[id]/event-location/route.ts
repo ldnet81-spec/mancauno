@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "../../../../../lib/supabase/admin";
+import { UUID_REGEX } from "../../../../../lib/slug";
 
 type RouteProps = {
   params: Promise<{
@@ -18,12 +19,15 @@ export async function GET(_request: Request, { params }: RouteProps) {
     );
   }
 
+  // Accetta sia UUID legacy sia il nuovo slug parlante.
+  const lookupColumn = UUID_REGEX.test(id) ? "id" : "slug";
+
   const { data: club } = await adminSupabase
     .from("profiles")
     .select("id, club_name, display_name, city, club_address, club_sports")
-    .eq("id", id)
+    .eq(lookupColumn, id)
     .eq("account_type", "circolo")
-    .single();
+    .maybeSingle();
 
   if (!club) {
     return NextResponse.json({ error: "Club non trovato." }, { status: 404 });

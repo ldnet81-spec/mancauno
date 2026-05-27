@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import AppHeaderServer from "../../../components/AppHeaderServer";
 import { createClient } from "../../../lib/supabase/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { formatDateItaly, formatTimeItaly } from "../../../lib/date-time";
 import FollowClubButton from "./FollowClubButton";
 import ClubProBadge from "../../../components/ClubProBadge";
+import { UUID_REGEX } from "../../../lib/slug";
 
 type ClubPageProps = {
   params: Promise<{
@@ -67,11 +68,13 @@ export async function generateMetadata({
     };
   }
 
+  const lookupColumn = UUID_REGEX.test(id) ? "id" : "slug";
+
   const { data: profile } = await adminSupabase
     .from("profiles")
-    .select("display_name, club_name, city, bio, account_type, avatar_url")
-    .eq("id", id)
-    .single();
+    .select("id, slug, display_name, club_name, city, bio, account_type, avatar_url")
+    .eq(lookupColumn, id)
+    .maybeSingle();
 
   if (!profile || profile.account_type !== "circolo") {
     return {
@@ -83,7 +86,10 @@ export async function generateMetadata({
   const clubName = getClubName(profile);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
-  const canonical = `/club/${id}`;
+  // Il canonical punta sempre allo slug se esiste, cosi le vecchie URL
+  // con UUID si consolidano sulla nuova URL parlante.
+  const canonicalParam = profile.slug || profile.id;
+  const canonical = `/club/${canonicalParam}`;
   const description =
     profile.bio ||
     `Scopri eventi sportivi, contatti e attivita di ${clubName}${
@@ -138,16 +144,23 @@ export default async function ClubPage({ params }: ClubPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const lookupColumn = UUID_REGEX.test(id) ? "id" : "slug";
+
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select(
-      "id, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan"
+      "id, slug, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan"
     )
-    .eq("id", id)
-    .single();
+    .eq(lookupColumn, id)
+    .maybeSingle();
 
   if (!profile || profile.account_type !== "circolo") {
     notFound();
+  }
+
+  // Vecchia URL con UUID → 301 alla URL parlante con slug (canonical SEO).
+  if (lookupColumn === "id" && profile.slug && profile.slug !== id) {
+    redirect(`/club/${profile.slug}`);
   }
 
   const { data: events } = await adminSupabase
@@ -410,7 +423,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
             events.map((event: any) => (
               <Link
                 key={event.id}
-                href={`/e/${event.short_code}`}
+                href={`/e/${event.slug ?? event.short_code}`}
                 className="block rounded-3xl border border-gray-200 p-5 text-black"
               >
                 <div className="flex items-start justify-between gap-4">

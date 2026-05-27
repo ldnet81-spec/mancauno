@@ -32,6 +32,7 @@ export const metadata: Metadata = {
 
 type ClubRow = {
   id: string;
+  slug: string | null;
   display_name: string | null;
   club_name: string | null;
   city: string | null;
@@ -59,7 +60,7 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
     let query = adminSupabase
       .from("profiles")
       .select(
-        "id, display_name, club_name, city, avatar_url, club_sports, bio, account_plan, created_at"
+        "id, slug, display_name, club_name, city, avatar_url, club_sports, bio, account_plan, created_at"
       )
       .eq("account_type", "circolo")
       .is("banned_at", null)
@@ -93,7 +94,7 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
       item: {
         "@type": "SportsClub",
         name: getClubName(club),
-        url: `${siteUrl}/club/${club.id}`,
+        url: `${siteUrl}/club/${club.slug ?? club.id}`,
         ...(club.city
           ? {
               address: {
@@ -221,7 +222,7 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
             return (
               <Link
                 key={club.id}
-                href={`/club/${club.id}`}
+                href={`/club/${club.slug ?? club.id}`}
                 className={`group flex flex-col rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] ${
                   isPro
                     ? "border-orange-300 bg-gradient-to-br from-orange-50 via-white to-white ring-1 ring-orange-100"

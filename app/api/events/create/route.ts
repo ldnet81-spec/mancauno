@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../lib/supabase/admin";
+import { toSlug, italianDateSlugPart } from "../../../../lib/slug";
 
 const DEFAULT_PRIVATE_MONTHLY_EVENT_LIMIT = 5;
 const DEFAULT_CLUB_MONTHLY_EVENT_LIMIT = 5;
@@ -243,17 +244,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  let eventSlug: string | null = null;
+
   if (data?.short_code) {
-    const { error: levelError } = await adminSupabase
+    // Slug "titolo-31-maggio-2026" — leggibile, SEO-friendly, univoco.
+    const datePart = italianDateSlugPart(startsAt.toISOString());
+    const titlePart = toSlug(title);
+    const baseSlug =
+      [titlePart, datePart].filter(Boolean).join("-") || "evento";
+
+    for (let counter = 1; counter <= 100; counter++) {
+      const candidate = counter === 1 ? baseSlug : `${baseSlug}-${counter}`;
+      const { count: existing } = await adminSupabase
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .eq("slug", candidate);
+      if (!existing) {
+        eventSlug = candidate;
+        break;
+      }
+    }
+    if (!eventSlug) {
+      eventSlug = `${baseSlug}-${Date.now().toString(36)}`;
+    }
+
+    const { error: updateError } = await adminSupabase
       .from("events")
-      .update({ skill_level: skillLevel })
+      .update({ skill_level: skillLevel, slug: eventSlug })
       .eq("short_code", data.short_code)
       .eq("creator_id", user.id);
 
-    if (levelError) {
-      return NextResponse.json({ error: levelError.message }, { status: 400 });
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 400 });
     }
   }
 
-  return NextResponse.json({ short_code: data?.short_code });
+  return NextResponse.json({
+    short_code: data?.short_code,
+    slug: eventSlug,
+  });
 }

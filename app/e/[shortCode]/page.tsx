@@ -1,8 +1,45 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../../../lib/supabase/server";
 import { createPublicClient } from "../../../lib/supabase/public";
 import { createAdminClient } from "../../../lib/supabase/admin";
+
+// Resolve l'evento sia da slug (URL parlanti nuovi) sia da short_code
+// (legacy, ancora in giro nei link condivisi). Restituisce sempre il
+// short_code reale (necessario per query sulla view event_with_counts)
+// e lo slug se presente (per costruire la URL canonical).
+async function resolveEventRouteParam(
+  supabaseClient: SupabaseClient,
+  param: string
+): Promise<{ shortCode: string; slug: string | null } | null> {
+  const lookupColumn = param.includes("-") ? "slug" : "short_code";
+
+  const { data: row } = await supabaseClient
+    .from("events")
+    .select("short_code, slug")
+    .eq(lookupColumn, param)
+    .maybeSingle();
+
+  if (row?.short_code) {
+    return { shortCode: row.short_code, slug: row.slug ?? null };
+  }
+
+  // Fallback sull'altra colonna (raro: short_code che contiene un trattino,
+  // o param non-slug che invece e uno slug senza trattino).
+  const otherColumn = lookupColumn === "slug" ? "short_code" : "slug";
+  const { data: fallbackRow } = await supabaseClient
+    .from("events")
+    .select("short_code, slug")
+    .eq(otherColumn, param)
+    .maybeSingle();
+
+  if (fallbackRow?.short_code) {
+    return { shortCode: fallbackRow.short_code, slug: fallbackRow.slug ?? null };
+  }
+
+  return null;
+}
 import JoinEventButton from "./JoinEventButton";
 import AutoJoinEvent from "./AutoJoinEvent";
 import ShareEventButton from "./ShareEventButton";
@@ -138,13 +175,24 @@ export async function generateMetadata({
   const { shortCode } = await params;
   const supabase = createPublicClient();
 
-  const { data: event } = await supabase
-    .from("event_with_counts")
-    .select("title, sport, city, starts_at, remaining_spots, waitlisted_count, status")
-    .eq("short_code", shortCode)
-    .single();
+  const resolved = await resolveEventRouteParam(supabase, shortCode);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+  if (!resolved) {
+    return {
+      title: "Evento non trovato - mancauno.it",
+      description: "Questo evento non e disponibile.",
+    };
+  }
+
+  const { data: event } = await supabase
+    .from("event_with_counts")
+    .select(
+      "title, sport, city, starts_at, remaining_spots, waitlisted_count, status"
+    )
+    .eq("short_code", resolved.shortCode)
+    .single();
 
   if (!event) {
     return {
@@ -152,6 +200,8 @@ export async function generateMetadata({
       description: "Questo evento non e disponibile.",
     };
   }
+
+  const canonicalParam = resolved.slug || resolved.shortCode;
 
   const formattedDate = formatDateTimeItaly(event.starts_at);
 
@@ -186,13 +236,15 @@ export async function generateMetadata({
               : `Mancano ${remainingSpots} posti.`
         } ${cityLabel} - ${formattedDate}`;
 
-  const ogImageUrl = `${siteUrl}/e/${shortCode}/opengraph-image`;
+  // OG image: il route handler /e/[shortCode]/opengraph-image conosce gia
+  // gli short_code legacy, lo usiamo invariato per generare l'immagine.
+  const ogImageUrl = `${siteUrl}/e/${resolved.shortCode}/opengraph-image`;
 
   return {
     title,
     description,
     alternates: {
-      canonical: `/e/${shortCode}`,
+      canonical: `/e/${canonicalParam}`,
     },
     ...(shouldNoIndex && {
       robots: { index: false, follow: true },
@@ -200,7 +252,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `${siteUrl}/e/${shortCode}`,
+      url: `${siteUrl}/e/${canonicalParam}`,
       siteName: "mancauno.it",
       locale: "it_IT",
       type: "website",
@@ -230,10 +282,15 @@ export default async function EventPage({ params }: EventPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const resolved = await resolveEventRouteParam(supabase, shortCode);
+  if (!resolved) {
+    notFound();
+  }
+
   const { data: event, error } = await supabase
     .from("event_with_counts")
     .select("*")
-    .eq("short_code", shortCode)
+    .eq("short_code", resolved.shortCode)
     .single();
 
   if (error || !event) {
@@ -243,7 +300,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const { data: creatorProfile } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, city, bio, avatar_url, account_type, account_plan, club_name, phone, created_at"
+      "id, slug, display_name, city, bio, avatar_url, account_type, account_plan, club_name, phone, created_at"
     )
     .eq("id", event.creator_id)
     .single();
@@ -357,7 +414,8 @@ export default async function EventPage({ params }: EventPageProps) {
     );
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const eventUrl = `${siteUrl}/e/${event.short_code}`;
+  // URL canonica: usiamo lo slug parlante se esiste, altrimenti il short_code.
+  const eventUrl = `${siteUrl}/e/${resolved.slug || resolved.shortCode}`;
 
   const mapsQuery = encodeURIComponent(
     `${event.location_name || ""} ${event.city || ""}`.trim()
@@ -403,7 +461,11 @@ export default async function EventPage({ params }: EventPageProps) {
       "@type": creatorType === "Circolo" ? "SportsClub" : "Person",
       name: creatorName,
       ...(creatorType === "Circolo"
-        ? { url: `${siteUrl}/club/${event.creator_id}` }
+        ? {
+            url: `${siteUrl}/club/${
+              creatorProfile?.slug ?? event.creator_id
+            }`,
+          }
         : {}),
     },
     offers: {
@@ -572,7 +634,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
         {creatorType === "Circolo" ? (
           <Link
-            href={`/club/${event.creator_id}`}
+            href={`/club/${creatorProfile?.slug ?? event.creator_id}`}
             aria-label={`Vai alla pagina del club ${creatorName}`}
             className="group mt-4 -mx-2 flex items-start gap-4 rounded-2xl px-2 py-2 transition hover:bg-gray-50"
           >
@@ -673,7 +735,7 @@ export default async function EventPage({ params }: EventPageProps) {
         {creatorType === "Circolo" ? (
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Link
-              href={`/club/${event.creator_id}`}
+              href={`/club/${creatorProfile?.slug ?? event.creator_id}`}
               className="rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-black"
             >
               Vedi pagina club

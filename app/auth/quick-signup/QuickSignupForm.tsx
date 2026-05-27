@@ -9,6 +9,7 @@ import { formatDateTimeItaly } from "../../../lib/date-time";
 import { sanitizeNextPath } from "../../../lib/auth-redirect";
 import { SPORTS } from "../../../lib/sports";
 import { CLUB_SERVICES } from "../../../lib/club-services";
+import { toSlug } from "../../../lib/slug";
 
 // Gli sport che un club puo dichiarare di offrire (esclusa "Altro evento").
 const availableSports = SPORTS.filter(
@@ -201,6 +202,30 @@ export default function QuickSignupForm() {
         }
 
         const isCircolo = accountType === "circolo";
+
+        // Per i circoli generiamo subito uno slug univoco usato come URL
+        // pubblica (es. /club/motori-dei-marsi). In caso di duplicato
+        // aggiungiamo un contatore -2, -3, ecc.
+        let clubSlug: string | null = null;
+        if (isCircolo) {
+          const baseSlug =
+            toSlug(clubName.trim() || displayName.trim()) || "club";
+          for (let counter = 1; counter <= 100; counter++) {
+            const candidate = counter === 1 ? baseSlug : `${baseSlug}-${counter}`;
+            const { count: existing } = await supabase
+              .from("profiles")
+              .select("id", { count: "exact", head: true })
+              .eq("slug", candidate);
+            if (!existing) {
+              clubSlug = candidate;
+              break;
+            }
+          }
+          if (!clubSlug) {
+            clubSlug = `${baseSlug}-${Date.now().toString(36)}`;
+          }
+        }
+
         const clubFields = {
           club_name: isCircolo ? clubName.trim() || null : null,
           club_address: isCircolo ? clubAddress.trim() || null : null,
@@ -210,6 +235,7 @@ export default function QuickSignupForm() {
           club_instagram: isCircolo ? clubInstagram.trim() || null : null,
           club_sports: isCircolo ? clubSports : [],
           club_services: isCircolo ? clubServices : [],
+          slug: clubSlug,
         };
 
         const { data, error } = await supabase.auth.signUp({

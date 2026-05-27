@@ -249,7 +249,10 @@ export default async function MyEventsPage({
                   key={event.id}
                   className="rounded-2xl border border-gray-200 p-4"
                 >
-                  <Link href={`/e/${event.short_code}`} className="block">
+                  <Link
+                    href={`/e/${event.slug ?? event.short_code}`}
+                    className="block"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-2xl">{event.sport_emoji}</p>
@@ -286,7 +289,7 @@ export default async function MyEventsPage({
                     </Link>
 
                     <Link
-                      href={`/e/${event.short_code}`}
+                      href={`/e/${event.slug ?? event.short_code}`}
                       className="rounded-xl bg-gray-100 px-4 py-2 text-center text-sm font-medium text-gray-700"
                     >
                       Vedi evento

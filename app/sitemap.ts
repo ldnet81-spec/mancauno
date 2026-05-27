@@ -55,13 +55,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: clubs } = await adminSupabase
     .from("profiles")
-    .select("id")
+    .select("id, slug")
     .eq("account_type", "circolo")
     .is("banned_at", null);
 
   const clubEntries: MetadataRoute.Sitemap = (clubs ?? []).map(
-    (club: { id: string }) => ({
-      url: `${siteUrl}/club/${club.id}`,
+    (club: { id: string; slug: string | null }) => ({
+      url: `${siteUrl}/club/${club.slug ?? club.id}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.7,
@@ -70,15 +70,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: events } = await adminSupabase
     .from("events")
-    .select("short_code")
+    .select("short_code, slug")
     .eq("status", "active")
     .gte("starts_at", now.toISOString())
     .order("starts_at", { ascending: true })
     .limit(5000);
 
   const eventEntries: MetadataRoute.Sitemap = (events ?? []).map(
-    (event: { short_code: string }) => ({
-      url: `${siteUrl}/e/${event.short_code}`,
+    (event: { short_code: string; slug: string | null }) => ({
+      url: `${siteUrl}/e/${event.slug ?? event.short_code}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.6,
