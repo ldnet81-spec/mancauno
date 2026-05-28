@@ -177,6 +177,14 @@ export default async function ClubPage({ params }: ClubPageProps) {
   const websiteHref = getExternalHref(profile.club_website);
   const instagramHref = getExternalHref(profile.club_instagram);
   const isClubPro = profile.account_plan === "pro";
+
+  // Query Maps: nome club + via + citta per il match piu preciso possibile.
+  const mapsQuery = [clubName, profile.club_address, profile.city]
+    .filter(Boolean)
+    .join(", ");
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    mapsQuery
+  )}`;
   const { count: followerCount } = await adminSupabase
     .from("club_followers")
     .select("club_id", { count: "exact", head: true })
@@ -274,10 +282,30 @@ export default async function ClubPage({ params }: ClubPageProps) {
           </div>
         </div>
 
-          {profile.city ? (
-            <p className="mt-2 text-gray-600">
-              {[profile.city, profile.club_address].filter(Boolean).join(" · ")}
-            </p>
+          {profile.city || profile.club_address ? (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-gray-600 underline decoration-gray-300 underline-offset-4 transition hover:text-blue-600"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="M12 21s7-4.8 7-11a7 7 0 1 0-14 0c0 6.2 7 11 7 11Z" />
+                <circle cx="12" cy="10" r="2.4" />
+              </svg>
+              <span>
+                {[profile.city, profile.club_address]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </a>
           ) : null}
 
           {profile.bio ? (
