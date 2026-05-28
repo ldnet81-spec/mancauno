@@ -72,7 +72,9 @@ export async function generateMetadata({
 
   const { data: profile } = await adminSupabase
     .from("profiles")
-    .select("id, slug, display_name, club_name, city, bio, account_type, avatar_url")
+    .select(
+      "id, slug, display_name, club_name, city, bio, account_type, avatar_url, club_sports"
+    )
     .eq(lookupColumn, id)
     .maybeSingle();
 
@@ -90,6 +92,18 @@ export async function generateMetadata({
   // con UUID si consolidano sulla nuova URL parlante.
   const canonicalParam = profile.slug || profile.id;
   const canonical = `/club/${canonicalParam}`;
+
+  // Title ottimizzato per le ricerche locali: "{club} — {sport} a {citta}".
+  const primarySport = profile.club_sports?.[0];
+  let pageTitle = clubName;
+  if (primarySport && profile.city) {
+    pageTitle = `${clubName} — ${primarySport} a ${profile.city}`;
+  } else if (profile.city) {
+    pageTitle = `${clubName} — Club sportivo a ${profile.city}`;
+  } else if (primarySport) {
+    pageTitle = `${clubName} — ${primarySport}`;
+  }
+
   const description =
     profile.bio ||
     `Scopri eventi sportivi, contatti e attivita di ${clubName}${
@@ -108,13 +122,13 @@ export async function generateMetadata({
       ];
 
   return {
-    title: clubName,
+    title: pageTitle,
     description,
     alternates: {
       canonical,
     },
     openGraph: {
-      title: clubName,
+      title: pageTitle,
       description,
       url: `${siteUrl}${canonical}`,
       siteName: "mancauno.it",
@@ -124,7 +138,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: clubName,
+      title: pageTitle,
       description,
       images: ogImages.map((image) => image.url),
     },
@@ -201,6 +215,9 @@ export default async function ClubPage({ params }: ClubPageProps) {
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
+  // URL canonica del club (slug se disponibile): usata in JSON-LD e breadcrumb.
+  const canonicalParam = profile.slug || profile.id;
+  const clubUrl = `${siteUrl}/club/${canonicalParam}`;
 
   const externalLinks = [
     getExternalHref(profile.club_website),
@@ -212,9 +229,9 @@ export default async function ClubPage({ params }: ClubPageProps) {
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "SportsClub",
-    "@id": `${siteUrl}/club/${id}`,
+    "@id": clubUrl,
     name: clubName,
-    url: `${siteUrl}/club/${id}`,
+    url: clubUrl,
     description:
       profile.bio ||
       `${clubName}${profile.city ? ` a ${profile.city}` : ""} su mancauno.it.`,
@@ -237,11 +254,31 @@ export default async function ClubPage({ params }: ClubPageProps) {
     ...(profile.club_sports?.length ? { sport: profile.club_sports } : {}),
   };
 
+  // Breadcrumb per le SERP: Home › Club › {nome club}.
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Club",
+        item: `${siteUrl}/club`,
+      },
+      { "@type": "ListItem", position: 3, name: clubName, item: clubUrl },
+    ],
+  };
+
   return (
     <main className="mx-auto min-h-screen max-w-3xl bg-white px-6 py-8 text-black">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <AppHeaderServer />
