@@ -3,12 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import AppHeaderServer from "../../../components/AppHeaderServer";
 import { formatDateTimeItaly } from "../../../lib/date-time";
+import DeleteEventButton from "./DeleteEventButton";
 
 type MyEventsPageProps = {
   searchParams: Promise<{
     approved?: string;
     rejected?: string;
     updated?: string;
+    deleted?: string;
     event?: string;
     error?: string;
   }>;
@@ -130,6 +132,12 @@ export default async function MyEventsPage({
       {params.updated ? (
         <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
           Evento aggiornato. I partecipanti approvati sono stati notificati.
+        </div>
+      ) : null}
+
+      {params.deleted ? (
+        <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
+          Evento eliminato.
         </div>
       ) : null}
 
@@ -294,6 +302,10 @@ export default async function MyEventsPage({
                     >
                       Vedi evento
                     </Link>
+                  </div>
+
+                  <div className="mt-2">
+                    <DeleteEventButton eventId={event.id} />
                   </div>
                 </div>
               );
