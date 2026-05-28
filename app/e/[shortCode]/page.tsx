@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../../../lib/supabase/server";
 import { createPublicClient } from "../../../lib/supabase/public";
 import { createAdminClient } from "../../../lib/supabase/admin";
@@ -9,13 +8,17 @@ import { createAdminClient } from "../../../lib/supabase/admin";
 // (legacy, ancora in giro nei link condivisi). Restituisce sempre il
 // short_code reale (necessario per query sulla view event_with_counts)
 // e lo slug se presente (per costruire la URL canonical).
+//
+// IMPORTANTE: usa il client admin (service role) per bypassare la RLS della
+// tabella events. Col client di sessione un utente loggato vedrebbe solo i
+// propri eventi e cliccando un evento altrui otterrebbe un falso 404.
 async function resolveEventRouteParam(
-  supabaseClient: SupabaseClient,
   param: string
 ): Promise<{ shortCode: string; slug: string | null } | null> {
+  const client = createAdminClient() ?? createPublicClient();
   const lookupColumn = param.includes("-") ? "slug" : "short_code";
 
-  const { data: row } = await supabaseClient
+  const { data: row } = await client
     .from("events")
     .select("short_code, slug")
     .eq(lookupColumn, param)
@@ -28,7 +31,7 @@ async function resolveEventRouteParam(
   // Fallback sull'altra colonna (raro: short_code che contiene un trattino,
   // o param non-slug che invece e uno slug senza trattino).
   const otherColumn = lookupColumn === "slug" ? "short_code" : "slug";
-  const { data: fallbackRow } = await supabaseClient
+  const { data: fallbackRow } = await client
     .from("events")
     .select("short_code, slug")
     .eq(otherColumn, param)
@@ -175,7 +178,7 @@ export async function generateMetadata({
   const { shortCode } = await params;
   const supabase = createPublicClient();
 
-  const resolved = await resolveEventRouteParam(supabase, shortCode);
+  const resolved = await resolveEventRouteParam(shortCode);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -282,7 +285,7 @@ export default async function EventPage({ params }: EventPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const resolved = await resolveEventRouteParam(supabase, shortCode);
+  const resolved = await resolveEventRouteParam(shortCode);
   if (!resolved) {
     notFound();
   }
