@@ -494,9 +494,28 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
       {section === "users" || section === "clubs" ? (
         <section>
-          <h2 className="text-2xl font-semibold">
-            {section === "clubs" ? "Club e circoli" : "Utenti privati"}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-semibold">
+              {section === "clubs" ? "Club e circoli" : "Utenti privati"}
+            </h2>
+
+            {section === "clubs" ? (
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/admin/clubs/nuovo"
+                  className="rounded-xl bg-black px-4 py-2 text-sm font-semibold !text-white"
+                >
+                  + Nuova scheda club
+                </Link>
+                <Link
+                  href="/admin/rivendicazioni"
+                  className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-black"
+                >
+                  Richieste rivendicazione
+                </Link>
+              </div>
+            ) : null}
+          </div>
 
           <div className="mt-4 space-y-4">
             {!profiles?.length ? (

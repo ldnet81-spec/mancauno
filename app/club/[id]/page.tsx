@@ -8,10 +8,14 @@ import { formatDateItaly, formatTimeItaly } from "../../../lib/date-time";
 import FollowClubButton from "./FollowClubButton";
 import ClubProBadge from "../../../components/ClubProBadge";
 import { UUID_REGEX } from "../../../lib/slug";
+import { isClubVerified } from "../../../lib/club-status";
 
 type ClubPageProps = {
   params: Promise<{
     id: string;
+  }>;
+  searchParams?: Promise<{
+    claim?: string;
   }>;
 };
 
@@ -73,7 +77,7 @@ export async function generateMetadata({
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select(
-      "id, slug, display_name, club_name, city, bio, account_type, avatar_url, club_sports"
+      "id, slug, display_name, club_name, city, bio, account_type, avatar_url, club_sports, claim_status, is_verified"
     )
     .eq(lookupColumn, id)
     .maybeSingle();
@@ -104,11 +108,16 @@ export async function generateMetadata({
     pageTitle = `${clubName} — ${primarySport}`;
   }
 
+  const verified =
+    Boolean(profile.is_verified) && profile.claim_status === "approved";
+
   const description =
     profile.bio ||
-    `Scopri eventi sportivi, contatti e attivita di ${clubName}${
+    `Scopri ${clubName}${
       profile.city ? ` a ${profile.city}` : ""
-    } su mancauno.it.`;
+    }: sport disponibili, eventi collegati e attivita sportive nella zona.${
+      verified ? "" : " Sei il gestore? Rivendica gratuitamente la scheda su MancaUno."
+    }`;
 
   const ogImages = profile.avatar_url
     ? [{ url: profile.avatar_url as string, alt: clubName }]
@@ -145,8 +154,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function ClubPage({ params }: ClubPageProps) {
+export default async function ClubPage({
+  params,
+  searchParams,
+}: ClubPageProps) {
   const { id } = await params;
+  const { claim } = (await searchParams) ?? {};
   const adminSupabase = createAdminClient();
   const supabase = await createClient();
 
@@ -163,7 +176,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select(
-      "id, slug, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan"
+      "id, slug, display_name, city, bio, avatar_url, account_type, phone, club_name, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, account_plan, claim_status, is_verified, owner_id"
     )
     .eq(lookupColumn, id)
     .maybeSingle();
@@ -177,10 +190,15 @@ export default async function ClubPage({ params }: ClubPageProps) {
     redirect(`/club/${profile.slug}`);
   }
 
+  // Da qui in poi usiamo SEMPRE profile.id: il param di route puo' essere lo
+  // slug, quindi confrontarlo con creator_id/club_id (che sono UUID) darebbe
+  // zero risultati.
+  const clubId = profile.id;
+
   const { data: events } = await adminSupabase
     .from("event_with_counts")
     .select("*")
-    .eq("creator_id", id)
+    .eq("creator_id", clubId)
     .eq("status", "active")
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
@@ -202,16 +220,18 @@ export default async function ClubPage({ params }: ClubPageProps) {
   const { count: followerCount } = await adminSupabase
     .from("club_followers")
     .select("club_id", { count: "exact", head: true })
-    .eq("club_id", id);
+    .eq("club_id", clubId);
   const { data: existingFollow } =
-    user && user.id !== id
+    user && user.id !== clubId
       ? await adminSupabase
           .from("club_followers")
           .select("club_id")
-          .eq("club_id", id)
+          .eq("club_id", clubId)
           .eq("user_id", user.id)
           .maybeSingle()
       : { data: null };
+
+  const verified = isClubVerified(profile);
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://mancauno.it";
@@ -283,6 +303,13 @@ export default async function ClubPage({ params }: ClubPageProps) {
 
       <AppHeaderServer />
 
+      {claim === "sent" ? (
+        <div className="mb-5 rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-800 ring-1 ring-green-100">
+          La richiesta di rivendicazione e stata inviata. Il team MancaUno
+          verifichera i dati e ti contattera appena possibile.
+        </div>
+      ) : null}
+
       <section className="rounded-3xl border border-gray-200 p-6">
         <div className="grid gap-5 sm:grid-cols-[132px_1fr] sm:items-start">
           <div className="aspect-square w-32 overflow-hidden rounded-3xl border border-gray-200 bg-gray-50 p-3">
@@ -305,9 +332,18 @@ export default async function ClubPage({ params }: ClubPageProps) {
               <span className="rounded-full bg-black px-3 py-1 text-xs font-semibold !text-white">
                 Club
               </span>
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                Pagina pubblica
-              </span>
+              {verified ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 ring-1 ring-blue-200">
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2 4 5v6c0 5 3.4 9.3 8 10 4.6-.7 8-5 8-10V5l-8-3Zm-1.2 13.2L7.5 12l1.4-1.4 1.9 1.9 4-4L16.2 10l-5.4 5.2Z" />
+                  </svg>
+                  Club verificato
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+                  Scheda informativa
+                </span>
+              )}
               {isClubPro ? <ClubProBadge compact /> : null}
             </div>
 
@@ -354,9 +390,35 @@ export default async function ClubPage({ params }: ClubPageProps) {
             </p>
           )}
 
+          {verified ? (
+            <div className="mt-5 rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100">
+              <p className="text-sm leading-6 text-blue-900">
+                Questo club gestisce direttamente la propria scheda su MancaUno.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+              <p className="text-sm leading-6 text-amber-900">
+                Questa scheda e stata creata da MancaUno per aiutare gli
+                sportivi a trovare club, eventi e attivita nella propria zona.
+                Al momento non e ancora gestita direttamente dal club.
+              </p>
+              <p className="mt-3 text-sm font-semibold leading-6 text-amber-900">
+                Sei il gestore di questo club? Rivendica gratuitamente la scheda
+                e trasformala in una pagina ufficiale.
+              </p>
+              <Link
+                href={`/club/${canonicalParam}/rivendica`}
+                className="mt-3 inline-flex rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-black !text-white transition hover:bg-amber-700"
+              >
+                Rivendica questo club
+              </Link>
+            </div>
+          )}
+
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <FollowClubButton
-              clubId={id}
+              clubId={clubId}
               initialFollowing={Boolean(existingFollow)}
               isLoggedIn={Boolean(user)}
             />

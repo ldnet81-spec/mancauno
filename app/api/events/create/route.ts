@@ -180,10 +180,17 @@ export async function POST(request: Request) {
   const { data: profile } = await adminSupabase
     .from("profiles")
     .select(
-      "account_type, account_plan, monthly_event_limit_override, created_at"
+      "account_type, account_plan, monthly_event_limit_override, created_at, is_verified"
     )
     .eq("id", user.id)
     .single();
+
+  // Origine evento: ufficiale se creato da un club verificato, altrimenti
+  // community (evento creato da un utente).
+  const eventSource =
+    profile?.account_type === "circolo" && profile?.is_verified
+      ? "official"
+      : "community";
 
   if (profile?.account_plan !== "pro") {
     const { start, end } = getUserMonthlyRange(profile?.created_at, new Date());
@@ -270,7 +277,11 @@ export async function POST(request: Request) {
 
     const { error: updateError } = await adminSupabase
       .from("events")
-      .update({ skill_level: skillLevel, slug: eventSlug })
+      .update({
+        skill_level: skillLevel,
+        slug: eventSlug,
+        event_source: eventSource,
+      })
       .eq("short_code", data.short_code)
       .eq("creator_id", user.id);
 

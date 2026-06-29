@@ -59,12 +59,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .eq("account_type", "circolo")
     .is("banned_at", null);
 
+  // Priorita alta (0.9) per i club: sono il fulcro della monetizzazione e
+  // segnaliamo a Google che meritano crawl/indicizzazione frequente.
   const clubEntries: MetadataRoute.Sitemap = (clubs ?? []).map(
     (club: { id: string; slug: string | null }) => ({
       url: `${siteUrl}/club/${club.slug ?? club.id}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
-      priority: 0.7,
+      priority: 0.9,
     })
   );
 

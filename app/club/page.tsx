@@ -4,6 +4,7 @@ import AppHeaderServer from "../../components/AppHeaderServer";
 import ClubProBadge from "../../components/ClubProBadge";
 import { createAdminClient } from "../../lib/supabase/admin";
 import { SPORTS } from "../../lib/sports";
+import { isClubVerified } from "../../lib/club-status";
 
 type ClubsPageProps = {
   searchParams: Promise<{
@@ -41,6 +42,8 @@ type ClubRow = {
   bio: string | null;
   account_plan: string | null;
   created_at: string | null;
+  claim_status: string | null;
+  is_verified: boolean | null;
 };
 
 function getClubName(profile: ClubRow): string {
@@ -60,7 +63,7 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
     let query = adminSupabase
       .from("profiles")
       .select(
-        "id, slug, display_name, club_name, city, avatar_url, club_sports, bio, account_plan, created_at"
+        "id, slug, display_name, club_name, city, avatar_url, club_sports, bio, account_plan, created_at, claim_status, is_verified"
       )
       .eq("account_type", "circolo")
       .is("banned_at", null)
@@ -218,6 +221,7 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
           {clubs.map((club) => {
             const clubName = getClubName(club);
             const isPro = club.account_plan === "pro";
+            const verified = isClubVerified(club);
 
             return (
               <Link
@@ -250,6 +254,15 @@ export default async function ClubsListPage({ searchParams }: ClubsPageProps) {
                       ) : (
                         <span className="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-black !text-white">
                           Club
+                        </span>
+                      )}
+                      {verified ? (
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 ring-1 ring-blue-200">
+                          Verificato
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+                          Scheda informativa
                         </span>
                       )}
                     </div>

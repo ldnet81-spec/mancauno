@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server";
 import { createPublicClient } from "../../../lib/supabase/public";
 import { createAdminClient } from "../../../lib/supabase/admin";
+import { eventSourceBadge } from "../../../lib/club-status";
 
 // Resolve l'evento sia da slug (URL parlanti nuovi) sia da short_code
 // (legacy, ancora in giro nei link condivisi). Restituisce sempre il
@@ -352,6 +353,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const creatorIsPrivatePlus =
     creatorType !== "Circolo" && creatorProfile?.account_plan === "pro";
 
+  const sourceBadge = eventSourceBadge(event.event_source);
   const isFull = remainingSpots <= 0;
   const isCreator = user?.id === event.creator_id;
   const isCancelled = event.status !== "active";
@@ -516,6 +518,20 @@ export default async function EventPage({ params }: EventPageProps) {
         <h1 className="mt-5 text-3xl font-semibold tracking-tight">
           {event.title}
         </h1>
+
+        {sourceBadge ? (
+          <div
+            className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+              sourceBadge.tone === "blue"
+                ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                : sourceBadge.tone === "orange"
+                  ? "bg-orange-50 text-orange-700 ring-1 ring-orange-200"
+                  : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+            }`}
+          >
+            {sourceBadge.label}
+          </div>
+        ) : null}
 
         <div
           className={`mt-4 inline-flex rounded-full px-4 py-2 text-sm font-medium ${availabilityClassName}`}
