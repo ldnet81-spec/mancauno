@@ -168,7 +168,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const profileSelect =
-    "id, display_name, email, city, role, banned_at, created_at, account_type, account_plan, monthly_event_limit_override, club_name, phone, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services";
+    "id, slug, display_name, email, city, role, banned_at, created_at, account_type, account_plan, monthly_event_limit_override, club_name, phone, club_address, club_whatsapp, club_email, club_website, club_instagram, club_sports, club_services, claim_status, is_verified, owner_id";
 
   let profilesQuery = adminSupabase
     .from("profiles")
@@ -598,6 +598,23 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                               {sport}
                             </span>
                           ))}
+                        </div>
+                      ) : null}
+
+                      {item.account_type === "circolo" ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Link
+                            href={`/club/${item.slug || item.id}`}
+                            className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-black"
+                          >
+                            Vedi scheda
+                          </Link>
+                          <Link
+                            href={`/admin/eventi/nuovo?club=${item.id}`}
+                            className="rounded-xl bg-black px-3 py-1.5 text-xs font-semibold !text-white"
+                          >
+                            + Evento segnalato
+                          </Link>
                         </div>
                       ) : null}
                     </div>

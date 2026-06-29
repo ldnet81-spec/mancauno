@@ -58,6 +58,16 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
         .eq("creator_id", user.id)
     : { count: 0 };
 
+  // Club rivendicati gestiti dall'utente (diversi dal proprio profilo).
+  const { count: ownedClubsCount } = adminSupabaseForCounts
+    ? await adminSupabaseForCounts
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id)
+        .eq("account_type", "circolo")
+        .neq("id", user.id)
+    : { count: 0 };
+
   const { data: myParticipationsForCount } = await supabase.rpc(
     "get_my_participations"
   );
@@ -182,6 +192,18 @@ export default async function ProfiloPage({ searchParams }: ProfiloPageProps) {
             <span>I miei eventi</span>
             <span className="text-gray-400">→</span>
           </Link>
+
+          {ownedClubsCount ? (
+            <Link
+              href="/profilo/club"
+              className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 font-medium"
+            >
+              <span>I miei club</span>
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
+                {ownedClubsCount}
+              </span>
+            </Link>
+          ) : null}
 
           <Link
             href="/notifiche"

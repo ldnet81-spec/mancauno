@@ -8,7 +8,7 @@ import { formatDateItaly, formatTimeItaly } from "../../../lib/date-time";
 import FollowClubButton from "./FollowClubButton";
 import ClubProBadge from "../../../components/ClubProBadge";
 import { UUID_REGEX } from "../../../lib/slug";
-import { isClubVerified } from "../../../lib/club-status";
+import { isClubVerified, eventSourceBadge } from "../../../lib/club-status";
 
 type ClubPageProps = {
   params: Promise<{
@@ -195,14 +195,50 @@ export default async function ClubPage({
   // zero risultati.
   const clubId = profile.id;
 
-  const { data: events } = await adminSupabase
+  const nowIso = new Date().toISOString();
+
+  // Eventi pubblicati direttamente dal club (creator_id = club).
+  const { data: ownEvents } = await adminSupabase
     .from("event_with_counts")
     .select("*")
     .eq("creator_id", clubId)
     .eq("status", "active")
-    .gte("starts_at", new Date().toISOString())
+    .gte("starts_at", nowIso)
     .order("starts_at", { ascending: true })
     .limit(20);
+
+  // Eventi "segnalati da MancaUno": collegati al club via club_id (creator_id
+  // e' l'admin). Recuperiamo prima gli short_code dalla tabella base, poi i
+  // dettagli dalla view per i conteggi.
+  const { data: suggestedRows } = await adminSupabase
+    .from("events")
+    .select("short_code")
+    .eq("club_id", clubId)
+    .eq("status", "active")
+    .gte("starts_at", nowIso);
+
+  const suggestedCodes = (suggestedRows ?? [])
+    .map((row: { short_code: string }) => row.short_code)
+    .filter(Boolean);
+
+  const { data: suggestedEvents } = suggestedCodes.length
+    ? await adminSupabase
+        .from("event_with_counts")
+        .select("*")
+        .in("short_code", suggestedCodes)
+    : { data: [] };
+
+  // Unione + dedup per id, ordinati per data.
+  const eventsById = new Map<string, any>();
+  for (const event of [...(ownEvents ?? []), ...(suggestedEvents ?? [])]) {
+    eventsById.set(event.id, event);
+  }
+  const events = Array.from(eventsById.values())
+    .sort(
+      (a, b) =>
+        new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+    )
+    .slice(0, 20);
 
   const clubName = getClubName(profile);
   const whatsappHref = getWhatsAppHref(profile.club_whatsapp || profile.phone);
@@ -570,6 +606,23 @@ export default async function ClubPage({
                       <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
                         Livello {formatSkillLevel(event.skill_level)}
                       </span>
+                      {(() => {
+                        const badge = eventSourceBadge(event.event_source);
+                        if (!badge) return null;
+                        return (
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${
+                              badge.tone === "blue"
+                                ? "bg-blue-50 text-blue-700"
+                                : badge.tone === "orange"
+                                  ? "bg-orange-50 text-orange-700"
+                                  : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {badge.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
 
