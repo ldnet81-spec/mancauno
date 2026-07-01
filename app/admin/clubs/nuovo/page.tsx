@@ -65,6 +65,7 @@ export default async function NuovoClubPage({
       <form
         method="post"
         action="/api/admin/clubs/create"
+        encType="multipart/form-data"
         className="space-y-5 rounded-3xl border border-gray-200 bg-white p-6"
       >
         <label className="block">
@@ -75,6 +76,19 @@ export default async function NuovoClubPage({
             placeholder="Es. Moscardino Padel Center"
             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"
           />
+        </label>
+
+        <label className="block rounded-xl border border-dashed border-gray-300 bg-white p-4">
+          <span className="text-sm font-semibold">Logo / immagine</span>
+          <input
+            type="file"
+            name="logo"
+            accept="image/*"
+            className="mt-2 block w-full text-sm text-gray-600"
+          />
+          <span className="mt-1 block text-xs text-gray-400">
+            Formato immagine, max 3 MB.
+          </span>
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">

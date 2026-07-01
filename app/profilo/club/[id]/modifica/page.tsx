@@ -37,7 +37,7 @@ export default async function EditClubPage({
   const { data: club } = await adminSupabase
     .from("profiles")
     .select(
-      "id, slug, owner_id, account_type, club_name, display_name, city, club_address, phone, club_whatsapp, club_email, club_website, club_instagram, bio, club_sports, club_services"
+      "id, slug, owner_id, account_type, club_name, display_name, city, club_address, phone, club_whatsapp, club_email, club_website, club_instagram, bio, club_sports, club_services, avatar_url"
     )
     .eq("id", id)
     .maybeSingle();
@@ -98,8 +98,38 @@ export default async function EditClubPage({
       <form
         method="post"
         action={`/api/clubs/${club.id}/update`}
+        encType="multipart/form-data"
         className="space-y-5 rounded-3xl border border-gray-200 bg-white p-6"
       >
+        <div>
+          <span className="text-sm font-semibold">Logo / immagine</span>
+          <div className="mt-2 flex items-center gap-4">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-2xl font-black text-gray-400">
+              {club.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={club.avatar_url}
+                  alt="Logo club"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                (club.club_name || "C").slice(0, 1).toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <input
+                type="file"
+                name="logo"
+                accept="image/*"
+                className="block w-full text-sm text-gray-600"
+              />
+              <span className="mt-1 block text-xs text-gray-400">
+                Carica una nuova immagine per sostituire quella attuale (max 3 MB).
+              </span>
+            </div>
+          </div>
+        </div>
+
         <label className="block">
           <span className="text-sm font-semibold">Nome club *</span>
           <input

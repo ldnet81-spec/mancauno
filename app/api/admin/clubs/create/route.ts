@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { createClient } from "../../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../../lib/supabase/admin";
 import { toSlug } from "../../../../../lib/slug";
+import { uploadClubLogo, getLogoFile } from "../../../../../lib/upload-club-logo";
 
 export const runtime = "nodejs";
 
@@ -85,6 +86,27 @@ export async function POST(request: Request) {
 
   const clubId = randomUUID();
 
+  // Logo (opzionale): caricato via service-role nel bucket avatars.
+  let avatarUrl: string | null = null;
+  const logoFile = getLogoFile(formData);
+  if (logoFile) {
+    try {
+      avatarUrl = await uploadClubLogo(adminSupabase, clubId, logoFile);
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Errore durante il caricamento del logo.";
+      return NextResponse.redirect(
+        new URL(
+          `/admin/clubs/nuovo?error=${encodeURIComponent(message)}`,
+          request.url
+        ),
+        { status: 303 }
+      );
+    }
+  }
+
   const { error } = await adminSupabase.from("profiles").insert({
     id: clubId,
     account_type: "circolo",
@@ -100,6 +122,7 @@ export async function POST(request: Request) {
     club_instagram: clubInstagram || null,
     club_sports: sports,
     club_services: [],
+    avatar_url: avatarUrl,
     slug,
     claim_status: "not_claimed",
     is_verified: false,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../../lib/supabase/admin";
+import { uploadClubLogo, getLogoFile } from "../../../../../lib/upload-club-logo";
 
 export const runtime = "nodejs";
 
@@ -87,22 +88,44 @@ export async function POST(request: Request, { params }: RouteProps) {
     );
   }
 
+  // Logo (opzionale): se caricato, sostituisce l'immagine attuale.
+  const updates: Record<string, unknown> = {
+    club_name: clubName,
+    display_name: text("display_name"),
+    city: text("city"),
+    club_address: text("club_address"),
+    phone: text("phone"),
+    club_whatsapp: text("club_whatsapp"),
+    club_email: text("club_email"),
+    club_website: text("club_website"),
+    club_instagram: text("club_instagram"),
+    bio: text("bio"),
+    club_sports: sports,
+    club_services: services,
+  };
+
+  const logoFile = getLogoFile(formData);
+  if (logoFile) {
+    try {
+      updates.avatar_url = await uploadClubLogo(adminSupabase, club.id, logoFile);
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Errore durante il caricamento del logo.";
+      return NextResponse.redirect(
+        new URL(
+          `/profilo/club/${id}/modifica?error=${encodeURIComponent(message)}`,
+          request.url
+        ),
+        { status: 303 }
+      );
+    }
+  }
+
   const { error } = await adminSupabase
     .from("profiles")
-    .update({
-      club_name: clubName,
-      display_name: text("display_name"),
-      city: text("city"),
-      club_address: text("club_address"),
-      phone: text("phone"),
-      club_whatsapp: text("club_whatsapp"),
-      club_email: text("club_email"),
-      club_website: text("club_website"),
-      club_instagram: text("club_instagram"),
-      bio: text("bio"),
-      club_sports: sports,
-      club_services: services,
-    })
+    .update(updates)
     .eq("id", club.id);
 
   if (error) {
