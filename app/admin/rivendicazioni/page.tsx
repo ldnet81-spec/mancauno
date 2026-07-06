@@ -77,6 +77,29 @@ export default async function RivendicazioniPage({
     (clubsData ?? []).map((club: any) => [club.id, club])
   );
 
+  // Rilevamento doppioni: per ogni club rivendicato cerchiamo altri circoli
+  // con nome simile (stesso primo token) — cosi' l'admin puo' accorgersi di
+  // una scheda gia' esistente prima di approvare.
+  const duplicatesByClubId = new Map<string, any[]>();
+  for (const clubId of clubIds) {
+    const club = clubsById.get(clubId);
+    const name = (club?.club_name || club?.display_name || "").trim();
+    const token = name.split(/\s+/).find((w: string) => w.length >= 3);
+    if (!token) continue;
+
+    const { data: dupes } = await adminSupabase
+      .from("profiles")
+      .select("id, slug, club_name, display_name, city")
+      .eq("account_type", "circolo")
+      .neq("id", clubId)
+      .ilike("club_name", `%${token}%`)
+      .limit(5);
+
+    if (dupes?.length) {
+      duplicatesByClubId.set(clubId, dupes);
+    }
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-6 py-8 text-black">
       <AppHeaderServer />
@@ -125,6 +148,7 @@ export default async function RivendicazioniPage({
             const clubName =
               club?.club_name || club?.display_name || "Club sconosciuto";
             const clubHref = `/club/${club?.slug || claim.club_id}`;
+            const duplicates = duplicatesByClubId.get(claim.club_id) ?? [];
 
             return (
               <div
@@ -147,6 +171,32 @@ export default async function RivendicazioniPage({
                     {formatDateTimeItaly(claim.created_at)}
                   </span>
                 </div>
+
+                {duplicates.length ? (
+                  <div className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-100">
+                    <p className="font-bold">
+                      ⚠ Possibile doppione: esistono altre schede con nome
+                      simile.
+                    </p>
+                    <ul className="mt-1 space-y-0.5">
+                      {duplicates.map((dupe: any) => (
+                        <li key={dupe.id}>
+                          <Link
+                            href={`/club/${dupe.slug || dupe.id}`}
+                            className="underline decoration-amber-400 underline-offset-2"
+                          >
+                            {dupe.club_name || dupe.display_name || "Club"}
+                          </Link>
+                          {dupe.city ? ` — ${dupe.city}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-xs">
+                      Verifica prima di approvare: se e la stessa realta, valuta
+                      di eliminare la scheda duplicata.
+                    </p>
+                  </div>
+                ) : null}
 
                 <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                   <div>

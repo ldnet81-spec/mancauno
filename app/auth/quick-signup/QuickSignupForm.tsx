@@ -54,6 +54,11 @@ export default function QuickSignupForm() {
   const nextParam = searchParams.get("next");
   const errorParam = searchParams.get("error");
 
+  // Se l'utente arriva dalla rivendicazione di un club, deve creare un account
+  // PERSONALE: rivendicare non serve a creare un nuovo club (che sarebbe un
+  // doppione), ma a collegare la scheda esistente al proprio profilo.
+  const isClaimFlow = Boolean(nextParam && nextParam.includes("/rivendica"));
+
   const supabase = useMemo(() => createClient(), []);
 
   const [email, setEmail] = useState("");
@@ -409,22 +414,33 @@ export default function QuickSignupForm() {
         <div className="mt-6 space-y-3">
           {mode === "signup" ? (
             <>
-              <label className="block">
-                <span className="text-sm font-medium">Tipo account</span>
+              {isClaimFlow ? (
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
+                  Stai per rivendicare un club. Crea qui il tuo{" "}
+                  <strong>account personale</strong>: dopo l&apos;approvazione
+                  gestirai la scheda del club direttamente da questo account,
+                  senza crearne una nuova.
+                </div>
+              ) : (
+                <label className="block">
+                  <span className="text-sm font-medium">Tipo account</span>
 
-                <select
-                  value={accountType}
-                  onChange={(event) =>
-                    setAccountType(event.target.value as "privato" | "circolo")
-                  }
-                  className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
-                >
-                  <option value="privato">Utente privato</option>
-                  <option value="circolo">Circolo</option>
-                </select>
-              </label>
+                  <select
+                    value={accountType}
+                    onChange={(event) =>
+                      setAccountType(
+                        event.target.value as "privato" | "circolo"
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black"
+                  >
+                    <option value="privato">Utente privato</option>
+                    <option value="circolo">Circolo</option>
+                  </select>
+                </label>
+              )}
 
-              {accountType === "circolo" ? (
+              {!isClaimFlow && accountType === "circolo" ? (
                 <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                   <div>
                     <p className="text-sm font-semibold text-black">
