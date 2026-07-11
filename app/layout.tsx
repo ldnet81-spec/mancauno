@@ -67,10 +67,8 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/logo-full.png",
-  },
+  // Le icone sono gestite via file convention di Next: app/favicon.ico,
+  // app/icon.png e app/apple-icon.png (generati dall'emblema mancauno).
   manifest: "/manifest.webmanifest",
 };
 
