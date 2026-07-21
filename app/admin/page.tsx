@@ -620,6 +620,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </div>
 
                     <div className="space-y-3">
+                      <Link
+                        href={`/admin/profili/${item.id}/modifica`}
+                        className="block w-full rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-bold !text-white transition hover:bg-blue-700"
+                      >
+                        ✎ Modifica profilo
+                      </Link>
+
                       <form
                         method="post"
                         action={`/api/admin/users/${item.id}/limits`}

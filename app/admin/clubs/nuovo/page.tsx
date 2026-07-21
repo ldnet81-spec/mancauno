@@ -178,6 +178,19 @@ export default async function NuovoClubPage({
           />
         </label>
 
+        <label className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+          <input
+            type="checkbox"
+            name="force"
+            value="1"
+            className="mt-0.5 h-4 w-4"
+          />
+          <span className="text-sm leading-6 text-amber-900">
+            <strong>Crea comunque</strong> anche se esiste gia una scheda
+            simile. Spunta solo dopo aver verificato che non sia un doppione.
+          </span>
+        </label>
+
         <button
           type="submit"
           className="w-full rounded-xl bg-black px-4 py-3 font-black !text-white"

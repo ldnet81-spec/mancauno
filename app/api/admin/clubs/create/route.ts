@@ -4,6 +4,10 @@ import { createClient } from "../../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../../lib/supabase/admin";
 import { toSlug } from "../../../../../lib/slug";
 import { uploadClubLogo, getLogoFile } from "../../../../../lib/upload-club-logo";
+import {
+  findDuplicateClub,
+  duplicateReasonLabel,
+} from "../../../../../lib/club-duplicates";
 
 export const runtime = "nodejs";
 
@@ -67,6 +71,33 @@ export async function POST(request: Request) {
       ),
       { status: 303 }
     );
+  }
+
+  // Controllo doppioni: se esiste gia' una scheda con stesso nome+citta,
+  // telefono o email, blocchiamo (a meno che l'admin non forzi con "force").
+  const force = String(formData.get("force") || "") === "1";
+  if (!force) {
+    const duplicate = await findDuplicateClub(adminSupabase, {
+      clubName,
+      city,
+      phone,
+      email: clubEmail,
+    });
+
+    if (duplicate) {
+      const message = `Esiste gia una scheda simile: "${duplicate.name}"${
+        duplicate.city ? ` (${duplicate.city})` : ""
+      } — ${duplicateReasonLabel(duplicate.reason)}. Controlla /club/${
+        duplicate.slug ?? duplicate.id
+      } oppure spunta "Crea comunque".`;
+      return NextResponse.redirect(
+        new URL(
+          `/admin/clubs/nuovo?error=${encodeURIComponent(message)}`,
+          request.url
+        ),
+        { status: 303 }
+      );
+    }
   }
 
   // Slug univoco (stesso schema usato al signup).

@@ -100,6 +100,16 @@ export default function QuickSignupForm() {
       ? "Il link di accesso non e piu valido o e gia stato usato. Accedi di nuovo."
       : ""
   );
+  // Scheda club gia' esistente rilevata durante la registrazione: invece di
+  // creare un doppione proponiamo di rivendicarla.
+  const [duplicateClub, setDuplicateClub] = useState<{
+    name: string;
+    city: string | null;
+    slug: string;
+    reason: string;
+  } | null>(null);
+  // L'utente ha dichiarato che non e' il suo club: non ricontrolliamo.
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [eventPreview, setEventPreview] = useState<EventPreview | null>(null);
   const [eventPreviewLoading, setEventPreviewLoading] = useState(false);
   const [eventPreviewError, setEventPreviewError] = useState("");
@@ -204,6 +214,31 @@ export default function QuickSignupForm() {
           setErrorMessage("Inserisci il nome del circolo.");
           setLoading(false);
           return;
+        }
+
+        // Anti-doppione: se il club esiste gia' su MancaUno, non ne creiamo
+        // un secondo — indirizziamo l'utente a rivendicare la scheda esistente.
+        if (accountType === "circolo" && !duplicateAcknowledged) {
+          try {
+            const response = await fetch("/api/clubs/check-duplicate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                club_name: clubName.trim(),
+                city: city.trim(),
+                phone: phone.trim(),
+                email: clubEmail.trim(),
+              }),
+            });
+            const result = await response.json();
+            if (result?.duplicate) {
+              setDuplicateClub(result.duplicate);
+              setLoading(false);
+              return;
+            }
+          } catch {
+            // Se la verifica non riesce non blocchiamo la registrazione.
+          }
         }
 
         const isCircolo = accountType === "circolo";
@@ -644,6 +679,44 @@ export default function QuickSignupForm() {
           {errorMessage ? (
             <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
               {errorMessage}
+            </div>
+          ) : null}
+
+          {duplicateClub ? (
+            <div className="rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900 ring-1 ring-amber-200">
+              <p className="font-bold">Questo club e gia su MancaUno</p>
+              <p className="mt-1">
+                Esiste gia la scheda{" "}
+                <strong>{duplicateClub.name}</strong>
+                {duplicateClub.city ? ` (${duplicateClub.city})` : ""} —{" "}
+                {duplicateClub.reason}. Per evitare doppioni, rivendica quella
+                invece di crearne una nuova: manterrai la pagina gia presente su
+                Google.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Link
+                  href={`/club/${duplicateClub.slug}/rivendica`}
+                  className="rounded-xl bg-amber-600 px-4 py-2.5 text-center text-sm font-black !text-white"
+                >
+                  Rivendica questo club
+                </Link>
+                <Link
+                  href={`/club/${duplicateClub.slug}`}
+                  className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-center text-sm font-bold text-amber-900"
+                >
+                  Vedi la scheda
+                </Link>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setDuplicateClub(null);
+                  setDuplicateAcknowledged(true);
+                }}
+                className="mt-3 text-xs font-semibold underline"
+              >
+                Non e il mio club, continua comunque
+              </button>
             </div>
           ) : null}
 
