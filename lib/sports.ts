@@ -6,6 +6,7 @@ export const SPORTS = [
   { label: "Calcio/calcetto", emoji: "⚽" },
   { label: "Padel", emoji: "🎾" },
   { label: "Tennis", emoji: "🎾" },
+  { label: "Pickleball", emoji: "🏓" },
   { label: "Beach volley", emoji: "🏐" },
   { label: "Basket", emoji: "🏀" },
   { label: "Running", emoji: "🏃" },

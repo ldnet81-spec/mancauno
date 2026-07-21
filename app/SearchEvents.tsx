@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatDateItaly, formatTimeItaly } from "../lib/date-time";
+import { SPORTS } from "../lib/sports";
 import ClubProBadge from "../components/ClubProBadge";
 import PrivatePlusBadge from "../components/PrivatePlusBadge";
 
@@ -35,17 +36,10 @@ type SearchEventsProps = {
 type DateFilter = "all" | "today" | "tomorrow" | "weekend";
 type SortFilter = "date" | "spots";
 
-const sportFilters = [
-  "Tutti",
-  "Calcetto",
-  "Padel",
-  "Tennis",
-  "Running",
-  "Basket",
-  "MTB",
-  "Trekking",
-  "Altro evento",
-];
+// Derivati dalla sorgente unica lib/sports.ts: le etichette combaciano sempre
+// con quelle salvate su event.sport (il confronto e' esatto) e ogni nuovo
+// sport compare automaticamente tra i filtri.
+const sportFilters = ["Tutti", ...SPORTS.map((sport) => sport.label)];
 
 function isSameDay(firstDate: Date, secondDate: Date) {
   return (

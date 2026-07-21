@@ -5,6 +5,7 @@ import {
   toItalyDateInputValue,
   toItalyTimeInputValue,
 } from "../../../../lib/date-time";
+import { SPORTS } from "../../../../lib/sports";
 
 type EntryType = "open" | "approval";
 type SkillLevel = "amatoriale" | "intermedio" | "esperto";
@@ -26,20 +27,8 @@ type EditEventFormProps = {
   approvedCount: number;
 };
 
-const sports = [
-  { label: "Calcio/calcetto", emoji: "⚽" },
-  { label: "Padel", emoji: "🎾" },
-  { label: "Tennis", emoji: "🎾" },
-  { label: "Beach volley", emoji: "🏐" },
-  { label: "Basket", emoji: "🏀" },
-  { label: "Running", emoji: "🏃" },
-  { label: "MTB", emoji: "🚴" },
-  { label: "Trekking", emoji: "🥾" },
-  { label: "Nuoto", emoji: "🏊" },
-  { label: "Allenamento", emoji: "🏋️" },
-  { label: "Lezione privata", emoji: "🎯" },
-  { label: "Altro evento", emoji: "✨" },
-];
+// Lista sport condivisa: vedi lib/sports.ts (unica sorgente di verita).
+const sports = SPORTS;
 
 const skillLevels: Array<{
   value: SkillLevel;
